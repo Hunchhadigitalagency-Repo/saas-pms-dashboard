@@ -1,0 +1,65 @@
+.ql-toolbar {
+    border-top-left-radius: 0.375rem;
+    border-top-right-radius: 0.375rem;
+    border: 1px solid #e2e8f0;
+    border-bottom: 0;
+    background-color: #f8fafc;
+}
+
+.ql-container {
+    border-bottom-left-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+    border: 1px solid #e2e8f0;
+}
+
+.ql-editor {
+    min-height: 120px;
+    font-size: 14px;
+}
+
+.ql-editor ol {
+    padding-left: 0rem;
+}
+
+.ql-editor ul {
+    padding-left: 0rem;
+}
+
+/* Checklist styles */
+.ql-editor li[data-list="checked"],
+.ql-editor li[data-list="unchecked"] {
+    list-style: none;
+    margin-left: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ql-editor li[data-list="checked"]>.ql-ui::before,
+.ql-editor li[data-list="unchecked"]>.ql-ui::before {
+    content: '';
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 0.20rem;
+    margin-top: 5px;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.ql-editor li[data-list="unchecked"]>.ql-ui::before {
+    border: 2px solid #64748b;
+    background-color: #fff;
+}
+
+.ql-editor li[data-list="checked"]>.ql-ui::before {
+    border: 2px solid #0ea5e9;
+    background-color: #0ea5e9;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='white' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'><path d='M16.707 5.293a1 1 0 010 1.414l-8.364 8.364a1 1 0 01-1.414 0L3.293 11.435a1 1 0 011.414-1.414l3.222 3.222 7.657-7.657a1 1 0 011.414 0z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.ql-editor li[data-list="checked"] {
+    text-decoration: line-through;
+    color: #9ca3af;
+}
