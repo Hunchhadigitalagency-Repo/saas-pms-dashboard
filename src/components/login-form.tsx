@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { loginService } from "@/pages/auth/auth_service/LoginService";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
 import toast from 'react-hot-toast';
 
@@ -102,12 +102,12 @@ export function LoginForm({
                 <div className="grid gap-3">
                   <div className="flex items-center">
                     <Label htmlFor="password" className="text-primary">Password</Label>
-                    <a
-                      href="#"
-                      className="ml-auto text-sm text-primary hover:underline"
+                    <Link
+                      to="/forgot-password/send-email"
+                      className="ml-auto text-sm text-primary hover:underline hover:text-secondary"
                     >
                       Forgot your password?
-                    </a>
+                    </Link>
                   </div>
                   <Input
                     id="password"
@@ -127,17 +127,17 @@ export function LoginForm({
               </div>
               <div className="text-center text-sm text-primary">
                 Don&apos;t have an account?{" "}
-                <a href="#" className="text-secondary hover:underline">
+                <Link to="/register" className="text-secondary hover:underline">
                   Sign up
-                </a>
+                </Link>
               </div>
             </div>
           </form>
         </CardContent>
       </Card>
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By clicking continue, you agree to our <a href="#" className="text-secondary">Terms of Service</a>{" "}
-        and <a href="#" className="text-secondary">Privacy Policy</a>.
+        By clicking continue, you agree to our <Link to="/terms" className="text-secondary">Terms of Service</Link>{" "}
+        and <Link to="/policy" className="text-secondary">Privacy Policy</Link>.
       </div>
     </div>
   );
