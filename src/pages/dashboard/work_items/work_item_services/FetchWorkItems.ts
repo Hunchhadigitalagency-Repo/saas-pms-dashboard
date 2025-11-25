@@ -38,7 +38,9 @@ export async function fetchWorkItems(): Promise<WorkItem[]> {
     while (currentPage <= totalPages) {
         const url = `${baseUrl}/work-items/?page=${currentPage}`;
         try {
-            const response = await axios.get<WorkItemResponse>(url);
+            const response = await axios.get<WorkItemResponse>(url, {
+                withCredentials: true, // Include cookies with request
+            });
 
             const data = response.data;
             allWorkItems = [...allWorkItems, ...data.results];
@@ -75,7 +77,9 @@ export async function fetchWorkItemById(workItemId: string): Promise<WorkItem> {
 
     const url = `${baseUrl}/work-items/${workItemId}/`;
     try {
-        const response = await axios.get<WorkItem>(url);
+        const response = await axios.get<WorkItem>(url, {
+            withCredentials: true, // Include cookies with request
+        });
         return response.data;
     } catch (error) {
         console.error(`Failed to fetch work item with ID ${workItemId}:`, error);

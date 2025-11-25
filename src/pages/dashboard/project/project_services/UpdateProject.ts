@@ -24,7 +24,9 @@ export async function updateProject(projectId: number, projectData: Partial<Proj
 
     const url = `${baseUrl}/projects/${projectId}/`;
     try {
-        const response = await axios.patch<Project>(url, projectData);
+        const response = await axios.patch<Project>(url, projectData, {
+            withCredentials: true, // Include cookies with request
+        });
         return response.data;
     } catch (error) {
         console.error("Failed to update project:", error);

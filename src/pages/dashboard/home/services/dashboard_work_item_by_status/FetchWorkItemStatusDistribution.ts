@@ -23,7 +23,9 @@ export async function fetchWorkItemStatusDistribution(): Promise<WorkItemStatusD
 
     const url = `${baseUrl}/dashboard/work-item-status-distribution/`;
     try {
-        const response = await axios.get<WorkItemStatusDistributionResponse>(url);
+        const response = await axios.get<WorkItemStatusDistributionResponse>(url, {
+            withCredentials: true, // Include cookies with request
+        });
         return response.data.status_distribution;
     } catch (error) {
         console.error("Failed to fetch work item status distribution:", error);

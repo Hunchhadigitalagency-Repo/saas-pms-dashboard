@@ -25,7 +25,9 @@ export async function createWorkItem(
 
     const url = `${baseUrl}/work-items/`;
     try {
-        const response = await axios.post<WorkItem>(url, newItem);
+        const response = await axios.post<WorkItem>(url, newItem, {
+            withCredentials: true, // Include cookies with request
+        });
         return response.data;
     } catch (error) {
         console.error("Failed to create work item:", error);

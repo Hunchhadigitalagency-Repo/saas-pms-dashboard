@@ -32,18 +32,14 @@ export async function createWorkItem(workItemData: WorkItemCreatePayload): Promi
     }
 
     const url = `${baseUrl}/work-items/`;
-    const accessToken = localStorage.getItem("accessToken");
-
-    if (!accessToken) {
-        throw new Error("Access Token not found.");
-    }
 
     try {
         const response = await axios.post<WorkItem>(url, workItemData, {
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${accessToken}`,
+                // Authorization header no longer needed - token is in HttpOnly cookie
             },
+            withCredentials: true, // Include cookies with request
         });
         return response.data;
     } catch (error) {

@@ -23,7 +23,9 @@ export async function deleteProject(projectId: number): Promise<void> {
 
     const url = `${baseUrl}/projects/${projectId}/`;
     try {
-        await axios.delete(url);
+        await axios.delete(url, {
+            withCredentials: true, // Include cookies with request
+        });
     } catch (error) {
         console.error("Failed to delete project:", error);
         throw error;

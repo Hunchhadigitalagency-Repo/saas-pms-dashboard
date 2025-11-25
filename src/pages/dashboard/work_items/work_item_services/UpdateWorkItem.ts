@@ -26,7 +26,9 @@ export async function updateWorkItem(
 
     const url = `${baseUrl}/work-items/${workItemId}/`;
     try {
-        const response = await axios.patch<WorkItem>(url, updatedData);
+        const response = await axios.patch<WorkItem>(url, updatedData, {
+            withCredentials: true, // Include cookies with request
+        });
         return response.data;
     } catch (error) {
         console.error(`Failed to update work item with ID ${workItemId}:`, error);

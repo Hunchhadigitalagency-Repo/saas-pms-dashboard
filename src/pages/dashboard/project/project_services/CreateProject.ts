@@ -24,7 +24,9 @@ export async function createProject(projectData: ProjectPayload): Promise<Projec
 
     const url = `${baseUrl}/projects/`;
     try {
-        const response = await axios.post<Project>(url, projectData);
+        const response = await axios.post<Project>(url, projectData, {
+            withCredentials: true, // Include cookies with request
+        });
         return response.data;
     } catch (error) {
         console.error("Failed to create project:", error);

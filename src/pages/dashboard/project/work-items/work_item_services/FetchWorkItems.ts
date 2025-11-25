@@ -62,7 +62,9 @@ export async function fetchWorkItems(projectId: string): Promise<WorkItem[]> {
     while (currentPage <= totalPages) {
         const url = `${baseUrl}/work-items/?project=${projectId}&page=${currentPage}`;
         try {
-            const response = await axios.get<WorkItemResponse>(url);
+            const response = await axios.get<WorkItemResponse>(url, {
+                withCredentials: true, // Include cookies with request
+            });
 
             const data = response.data;
             allWorkItems = [...allWorkItems, ...data.results];

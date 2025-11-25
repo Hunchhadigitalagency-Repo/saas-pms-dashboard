@@ -24,7 +24,9 @@ export async function fetchDashboardCounts(): Promise<DashboardCounts> {
 
     const url = `${baseUrl}/dashboard/dashboard_data/`;
     try {
-        const response = await axios.get<DashboardCounts>(url);
+        const response = await axios.get<DashboardCounts>(url, {
+            withCredentials: true, // Include cookies with request
+        });
         return response.data;
     } catch (error) {
         console.error("Failed to fetch dashboard counts:", error);

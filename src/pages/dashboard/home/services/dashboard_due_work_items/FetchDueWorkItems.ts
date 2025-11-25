@@ -27,7 +27,9 @@ export async function fetchDueWorkItems(): Promise<DueWorkItem[]> {
 
     const url = `${baseUrl}/dashboard/due-tasks/`;
     try {
-        const response = await axios.get<DueWorkItemsResponse>(url);
+        const response = await axios.get<DueWorkItemsResponse>(url, {
+            withCredentials: true, // Include cookies with request
+        });
         return response.data.due_tasks;
     } catch (error) {
         console.error("Failed to fetch due work items:", error);

@@ -35,7 +35,9 @@ export async function fetchOnGoingProjects(): Promise<Project[]> {
 
   const url = `${baseUrl}/ongoing-projects/`;
   try {
-    const response = await axios.get<any[]>(url);
+    const response = await axios.get<any[]>(url, {
+      withCredentials: true, // Include cookies with request
+    });
     const data = response.data;
     console.log("Fetched projects:", data);
 

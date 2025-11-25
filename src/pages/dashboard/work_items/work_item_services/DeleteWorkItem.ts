@@ -22,7 +22,9 @@ export async function deleteWorkItem(workItemId: number): Promise<void> {
 
     const url = `${baseUrl}/work-items/${workItemId}/`;
     try {
-        await axios.delete(url);
+        await axios.delete(url, {
+            withCredentials: true, // Include cookies with request
+        });
     } catch (error) {
         console.error(`Failed to delete work item with ID ${workItemId}:`, error);
         throw error;

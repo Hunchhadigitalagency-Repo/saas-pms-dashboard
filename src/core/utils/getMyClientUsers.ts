@@ -20,20 +20,14 @@ interface User {
  * @returns {Promise<User[] | null>} - A promise that resolves to an array of users or null if an error occurs.
  */
 export const getMyClientUsers = async (): Promise<User[] | null> => {
-  const accessToken = localStorage.getItem("accessToken");
-
-  if (!accessToken) {
-    console.error("Access Token not found.");
-    return null;
-  }
-
   try {
     const response = await fetch(`${BASE_URL}/my-client-users/`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+        // Authorization header no longer needed - token is in HttpOnly cookie
       },
+      credentials: "include", // Include cookies with request
     });
 
     if (response.status === 401) {

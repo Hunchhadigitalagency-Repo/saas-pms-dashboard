@@ -39,7 +39,9 @@ export async function fetchProjects(): Promise<Project[]> {
     while (currentPage <= totalPages) {
         const url = `${baseUrl}/projects/?page=${currentPage}`;
         try {
-            const response = await axios.get<ProjectResponse>(url);
+            const response = await axios.get<ProjectResponse>(url, {
+                withCredentials: true, // Include cookies with request
+            });
 
             const data = response.data;
             allProjects = [...allProjects, ...data.results];

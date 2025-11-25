@@ -2,13 +2,14 @@ import { BASE_URL } from "@/core/api/constant";
 
 // --- Interfaces for the Login Response ---
 interface User {
+  id: number;
   email: string;
   first_name: string;
   last_name: string;
 }
 
 interface Profile {
-  profile_picture: string;
+  profile_picture: string | null;
 }
 
 interface Client {
@@ -21,18 +22,14 @@ interface Domain {
   is_primary: boolean;
 }
 
-interface Tokens {
-  refresh: string;
-  access: string;
-}
-
 interface LoginResponse {
   user: User;
-  profile: Profile;
+  profile: Profile | null;
   client: Client;
   domains: Domain;
   user_role: string;
-  tokens: Tokens;
+  // NOTE: Tokens are NO LONGER in the response body!
+  // They are automatically set as HttpOnly cookies by the server
 }
 
 // --- Interface for the credentials sent to the service ---
@@ -51,25 +48,28 @@ export const loginService = async (
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include", // Important: include cookies with request
       body: JSON.stringify(credentials),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.detail || `Request failed with status ${response.status}`);
+      throw new Error(errorData.detail || errorData.error || `Request failed with status ${response.status}`);
     }
 
     const data: LoginResponse = await response.json();
 
-    // Clear old data and store new data in localStorage
+    // Clear old data and store only non-sensitive user data in localStorage
     localStorage.clear();
     localStorage.setItem("user", JSON.stringify(data.user));
     localStorage.setItem("profile", JSON.stringify(data.profile));
     localStorage.setItem("client", JSON.stringify(data.client));
     localStorage.setItem("domains", JSON.stringify(data.domains));
     localStorage.setItem("userRole", data.user_role);
-    localStorage.setItem("accessToken", data.tokens.access);
-    localStorage.setItem("refreshToken", data.tokens.refresh);
+
+    // DO NOT store tokens in localStorage anymore!
+    // Tokens are now automatically set as HttpOnly cookies by the server
+    // The browser handles them automatically and they cannot be accessed by JavaScript
 
     return { success: true };
 

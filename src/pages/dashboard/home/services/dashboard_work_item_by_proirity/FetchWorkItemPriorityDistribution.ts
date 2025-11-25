@@ -23,7 +23,9 @@ export async function fetchWorkItemPriorityDistribution(): Promise<WorkItemPrior
 
     const url = `${baseUrl}/dashboard/work-item-priority-distribution/`;
     try {
-        const response = await axios.get<WorkItemPriorityDistributionResponse>(url);
+        const response = await axios.get<WorkItemPriorityDistributionResponse>(url, {
+            withCredentials: true, // Include cookies with request
+        });
         return response.data.priority_distribution;
     } catch (error) {
         console.error("Failed to fetch work item priority distribution:", error);
