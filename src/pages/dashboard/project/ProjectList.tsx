@@ -14,6 +14,7 @@ import { DeleteConfirmationDialog } from "./components/DeleteConfirmationDialog"
 import { ProjectForm } from "./components/ProjectForm"
 import { ProjectDetailDrawer } from "./components/ProjectDetailDrawer"
 import { deleteProject } from "./project_services/DeleteProject";
+import { updateProject } from "./project_services/UpdateProject";
 import { ProjectListSkeleton } from "./components/ProjectListSkeleton";
 import {
     Breadcrumb,
@@ -48,6 +49,7 @@ export default function ProjectList() {
     const [viewDrawerOpen, setViewDrawerOpen] = useState(false)
     const [projectToView, setProjectToView] = useState<Project | null>(null)
     const [isDeleting, setIsDeleting] = useState(false);
+    const [updatingIds, setUpdatingIds] = useState<number[]>([]);
 
     // Form state for add/edit
     const [formData, setFormData] = useState<Omit<Project, 'id' | 'created_at' | 'updated_at'>>({
@@ -64,7 +66,9 @@ export default function ProjectList() {
         try {
             setLoading(true)
             const data = await fetchProjects()
-            setProjects(data)
+            // Normalize data to ensure team_members is always an array
+            const normalized = data.map((p) => ({ ...p, team_members: p.team_members ?? [] }))
+            setProjects(normalized)
             setError(null)
         } catch (err) {
             console.error("Failed to load projects:", err)
@@ -78,7 +82,13 @@ export default function ProjectList() {
         loadProjects()
     }, [])
 
-    const updateProjectStatus = (projectId: number, newStatus: Project['status']) => {
+    // Optimistic update: update UI immediately, call API, revert on failure
+    const updateProjectStatus = async (projectId: number, newStatus: Project['status']) => {
+        const prevProjects = projects.map(p => ({ ...p }))
+        // mark as updating
+        setUpdatingIds(prev => Array.from(new Set([...prev, projectId])))
+
+        // Optimistically update local state
         setProjects(prev =>
             prev.map(project =>
                 project.id === projectId
@@ -86,9 +96,29 @@ export default function ProjectList() {
                     : project
             )
         )
+
+        try {
+            const updated = await updateProject(projectId, { status: newStatus })
+            // Merge server response with local project to avoid wiping fields that server omits
+            setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...updated, team_members: updated.team_members ?? p.team_members } : p))
+            setError(null)
+        } catch (err) {
+            console.error("Failed to update project status:", err)
+            setError("Failed to update project status. Please try again.")
+            // Revert optimistic update
+            setProjects(prevProjects)
+        } finally {
+            // remove from updating
+            setUpdatingIds(prev => prev.filter(id => id !== projectId))
+        }
     }
 
-    const updateProjectPriority = (projectId: number, newPriority: Project['priority']) => {
+    const updateProjectPriority = async (projectId: number, newPriority: Project['priority']) => {
+        const prevProjects = projects.map(p => ({ ...p }))
+        // mark as updating
+        setUpdatingIds(prev => Array.from(new Set([...prev, projectId])))
+
+        // Optimistically update local state
         setProjects(prev =>
             prev.map(project =>
                 project.id === projectId
@@ -96,6 +126,19 @@ export default function ProjectList() {
                     : project
             )
         )
+
+        try {
+            const updated = await updateProject(projectId, { priority: newPriority })
+            setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...updated, team_members: updated.team_members ?? p.team_members } : p))
+            setError(null)
+        } catch (err) {
+            console.error("Failed to update project priority:", err)
+            setError("Failed to update project priority. Please try again.")
+            // Revert optimistic update
+            setProjects(prevProjects)
+        } finally {
+            setUpdatingIds(prev => prev.filter(id => id !== projectId))
+        }
     }
 
     const handleSort = (field: string) => {
@@ -497,13 +540,13 @@ export default function ProjectList() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => updateProjectStatus(project.id, "active")}>
+                                                    <DropdownMenuItem disabled={updatingIds.includes(project.id)} onClick={() => updateProjectStatus(project.id, "active")}>
                                                         Active
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => updateProjectStatus(project.id, "completed")}>
+                                                    <DropdownMenuItem disabled={updatingIds.includes(project.id)} onClick={() => updateProjectStatus(project.id, "completed")}>
                                                         Completed
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => updateProjectStatus(project.id, "on_hold")}>
+                                                    <DropdownMenuItem disabled={updatingIds.includes(project.id)} onClick={() => updateProjectStatus(project.id, "on_hold")}>
                                                         On Hold
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
@@ -522,13 +565,13 @@ export default function ProjectList() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => updateProjectPriority(project.id, "high")}>
+                                                    <DropdownMenuItem disabled={updatingIds.includes(project.id)} onClick={() => updateProjectPriority(project.id, "high")}>
                                                         High
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => updateProjectPriority(project.id, "medium")}>
+                                                    <DropdownMenuItem disabled={updatingIds.includes(project.id)} onClick={() => updateProjectPriority(project.id, "medium")}>
                                                         Medium
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => updateProjectPriority(project.id, "low")}>
+                                                    <DropdownMenuItem disabled={updatingIds.includes(project.id)} onClick={() => updateProjectPriority(project.id, "low")}>
                                                         Low
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
@@ -558,29 +601,34 @@ export default function ProjectList() {
                                         </td>
                                         <td className="px-3 py-1">
                                             <div className="flex items-center">
-                                                {project.team_members.length > 0 ? (
+                                                {(project.team_members?.length ?? 0) > 0 ? (
                                                     <div className="flex -space-x-2">
-                                                        {project.team_members.map((member: any) => (
-                                                            <TooltipProvider key={member.user.id}>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <div className="relative hover:z-10 transition-transform hover:scale-110">
-                                                                            <Avatar className="w-4 h-4 p-3 border-2 border-white bg-black">
-                                                                                <AvatarFallback className="text-xs text-white bg-slate-400/10">
-                                                                                    {member.user.first_name.charAt(0).toUpperCase()}
-                                                                                    {member.user.last_name.charAt(0).toUpperCase()}
-                                                                                </AvatarFallback>
-                                                                            </Avatar>
-                                                                        </div>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent side="top" className="bg-black text-white rounded px-3 py-1.5">
-                                                                        <span className="text-xs">
-                                                                            {member.user.first_name} {member.user.last_name}
-                                                                        </span>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                        ))}
+                                                        {(project.team_members ?? []).map((member: any, idx: number) => {
+                                                            const user = member?.user || {}
+                                                            const firstInitial = user.first_name ? String(user.first_name).charAt(0).toUpperCase() : (user.username ? String(user.username).charAt(0).toUpperCase() : "?")
+                                                            const lastInitial = user.last_name ? String(user.last_name).charAt(0).toUpperCase() : ""
+                                                            const key = user.id ?? member.id ?? idx
+                                                            return (
+                                                                <TooltipProvider key={key}>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <div className="relative hover:z-10 transition-transform hover:scale-110">
+                                                                                <Avatar className="w-4 h-4 p-3 border-2 border-white bg-black">
+                                                                                    <AvatarFallback className="text-xs text-white bg-slate-400/10">
+                                                                                        {firstInitial}{lastInitial}
+                                                                                    </AvatarFallback>
+                                                                                </Avatar>
+                                                                            </div>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent side="top" className="bg-black text-white rounded px-3 py-1.5">
+                                                                            <span className="text-xs">
+                                                                                {user.first_name ?? user.username ?? "Unknown"} {user.last_name ?? ""}
+                                                                            </span>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            )
+                                                        })}
                                                     </div>
                                                 ) : (
                                                     <span className="text-xs text-gray-500">-</span>

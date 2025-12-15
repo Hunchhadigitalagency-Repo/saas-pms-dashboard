@@ -1,5 +1,6 @@
 
 import axios from "axios";
+import { BASE_URL } from "@/core/api/constant";
 
 export async function deleteProject(projectId: number): Promise<void> {
     const domainsString = localStorage.getItem("domains");
@@ -18,7 +19,8 @@ export async function deleteProject(projectId: number): Promise<void> {
     }
 
     if (!baseUrl) {
-        throw new Error("Base URL not found. Cannot delete project.");
+        console.warn("domains not found in localStorage; falling back to BASE_URL")
+        baseUrl = BASE_URL
     }
 
     const url = `${baseUrl}/projects/${projectId}/`;

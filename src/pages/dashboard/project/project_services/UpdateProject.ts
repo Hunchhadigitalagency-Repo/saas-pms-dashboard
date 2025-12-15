@@ -1,6 +1,7 @@
 
 import axios from "axios";
 import type { Project, ProjectPayload } from "./types";
+import { BASE_URL } from "@/core/api/constant";
 
 export async function updateProject(projectId: number, projectData: Partial<ProjectPayload>): Promise<Project> {
     const domainsString = localStorage.getItem("domains");
@@ -19,7 +20,8 @@ export async function updateProject(projectId: number, projectData: Partial<Proj
     }
 
     if (!baseUrl) {
-        throw new Error("Base URL not found. Cannot update project.");
+        console.warn("domains not found in localStorage; falling back to BASE_URL")
+        baseUrl = BASE_URL
     }
 
     const url = `${baseUrl}/projects/${projectId}/`;

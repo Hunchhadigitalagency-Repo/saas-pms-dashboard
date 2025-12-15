@@ -1,3 +1,4 @@
+import axios from "axios";
 import { BASE_URL } from "../api/constant";
 import { checkAuthStatus } from "./auth";
 
@@ -21,21 +22,16 @@ interface User {
  */
 export const getMyClientUsers = async (): Promise<User[] | null> => {
   try {
-    const response = await fetch(`${BASE_URL}/my-client-users/`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        // Authorization header no longer needed - token is in HttpOnly cookie
-      },
-      credentials: "include", // Include cookies with request
+    const url = `${BASE_URL}/my-client-users/`;
+    const response = await axios.get<User[]>(url, {
+      withCredentials: true, // Include cookies with request
     });
-
     if (response.status === 401) {
       checkAuthStatus();
     }
 
-    if (response.ok) {
-      const data: User[] = await response.json();
+    if (response.status === 200) {
+      const data: User[] = response.data;
       return data;
     } else {
       console.error("Failed to fetch clients:", response.statusText);

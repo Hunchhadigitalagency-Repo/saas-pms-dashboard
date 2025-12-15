@@ -1,4 +1,5 @@
 import axios from "axios";
+import { BASE_URL } from "@/core/api/constant";
 import type { Project } from "./types";
 export type { Project } from "./types";
 
@@ -28,7 +29,9 @@ export async function fetchProjects(): Promise<Project[]> {
     }
 
     if (!baseUrl) {
-        throw new Error("Base URL not found. Cannot fetch projects.");
+        // fallback to app-wide BASE_URL if domains not present in localStorage
+        console.warn("domains not found in localStorage; falling back to BASE_URL")
+        baseUrl = BASE_URL
     }
 
     let allProjects: Project[] = [];
