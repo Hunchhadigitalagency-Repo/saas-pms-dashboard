@@ -31,7 +31,7 @@ export const checkAuthStatus = async (): Promise<boolean> => {
       return true; // Token is valid
     } else {
       // Token invalid or expired, clear user data
-      localStorage.clear();
+      // localStorage.clear();
       return false;
     }
   } catch (error) {

@@ -26,19 +26,20 @@ export const getMyClientUsers = async (): Promise<User[] | null> => {
     const response = await axios.get<User[]>(url, {
       withCredentials: true, // Include cookies with request
     });
-    if (response.status === 401) {
-      checkAuthStatus();
-    }
 
-    if (response.status === 200) {
-      const data: User[] = response.data;
-      return data;
-    } else {
-      console.error("Failed to fetch clients:", response.statusText);
-      return null;
-    }
+    return response.data;
   } catch (error) {
-    console.error("Error fetching clients:", error);
+    // Axios throws errors for non-2xx status codes
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        console.error("Authentication failed - cookies may not be set or expired");
+        checkAuthStatus();
+      } else {
+        console.error("Failed to fetch clients:", error.response?.statusText || error.message);
+      }
+    } else {
+      console.error("Error fetching clients:", error);
+    }
     return null;
   }
 };

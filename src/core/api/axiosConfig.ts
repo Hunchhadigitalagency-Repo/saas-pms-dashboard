@@ -16,4 +16,25 @@ const axiosInstance = axios.create({
   withCredentials: true, // Include credentials (cookies) with every request
 });
 
+// Response interceptor for global error handling
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response) {
+      const status = error.response.status;
+      if (status === 401) {
+        console.error("Authentication failed - redirecting to login");
+        // Clear local storage and redirect to login
+        localStorage.clear();
+        window.location.href = "/login";
+      } else if (status === 403) {
+        console.error("Access forbidden - insufficient permissions");
+      } else if (status >= 500) {
+        console.error("Server error:", error.response.statusText);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default axiosInstance;
