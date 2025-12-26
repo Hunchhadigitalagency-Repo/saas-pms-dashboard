@@ -1,5 +1,4 @@
 name: 🚀 Deploy Frontend to Server
-
 on:
     push:
         branches:
