@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { WorkItem, User } from "./FetchWorkItems";
+import type { WorkItem } from "./FetchWorkItems";
 
 export interface WorkItemCreatePayload {
     title: string;

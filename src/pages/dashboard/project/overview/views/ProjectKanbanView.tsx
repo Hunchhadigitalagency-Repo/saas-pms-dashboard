@@ -1,4 +1,3 @@
-import React from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import type { WorkItem } from "../services/FetchWorkItems"
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +8,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Clock, CheckCircle2, Circle, Calendar, Flag, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Clock, CheckCircle2, Circle, Flag, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -65,16 +64,7 @@ const ProjectKanbanView = ({ workItems, updateWorkItemStatus, openViewDrawer, op
         },
     };
 
-    const getPriorityColor = (priority: string) => {
-        switch (priority.toLowerCase()) {
-            case "high":
-                return "bg-red-500";
-            case "medium":
-                return "bg-amber-500";
-            default:
-                return "bg-slate-400";
-        }
-    };
+
 
     const getPriorityFlagColor = (priority: string) => {
         switch (priority.toLowerCase()) {
@@ -145,7 +135,6 @@ const ProjectKanbanView = ({ workItems, updateWorkItemStatus, openViewDrawer, op
                                         }}
                                     >
                                         {columnItems.map((item, index) => {
-                                            const isOverdue = item.due_date && new Date(item.due_date) < new Date();
 
                                             return (
                                                 <Draggable

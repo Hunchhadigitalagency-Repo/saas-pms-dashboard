@@ -300,7 +300,7 @@ export function WorkItemForm({
                             <div className="flex items-center gap-2">
                                 {/* Avatar Stack */}
                                 <div className="flex -space-x-2">
-                                    {formData.assigned_to.map((user, index) => (
+                                    {formData.assigned_to.map((user) => (
                                         <div
                                             key={user.id}
                                             className="relative group"

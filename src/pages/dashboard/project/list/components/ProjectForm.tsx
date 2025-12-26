@@ -80,24 +80,7 @@ export function ProjectForm({
         }
     }, [open])
 
-    const addTeamMember = () => {
-        if (teamMemberInput.trim() && teamMemberRoleInput.trim()) {
-            const selectedUser = users.find(u => u.username === teamMemberInput.trim());
-            if (selectedUser && !formData.team_members.some(tm => tm.user.id === selectedUser.id)) {
-                const newMember: TeamMember = {
-                    user: selectedUser,
-                    role: teamMemberRoleInput.trim()
-                }
 
-                setFormData({
-                    ...formData,
-                    team_members: [...formData.team_members, newMember]
-                })
-                setTeamMemberInput("")
-                setTeamMemberRoleInput("")
-            }
-        }
-    }
 
     const removeTeamMember = (userId: number) => {
         setFormData({

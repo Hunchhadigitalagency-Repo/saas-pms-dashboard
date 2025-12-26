@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
-import { Calendar, Link as LinkIcon, Pencil, ListTodo, AlertCircle } from "lucide-react"
+import { Link as AlertCircle } from "lucide-react"
 import { fetchProjectDetails, type ProjectDetails } from "./services/FetchProjectDetails"
 import {
     Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator,

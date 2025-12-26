@@ -9,7 +9,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Users, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 const teamWorkload = [

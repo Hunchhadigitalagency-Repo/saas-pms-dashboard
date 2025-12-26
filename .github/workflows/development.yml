@@ -16,7 +16,7 @@ jobs:
             # 🧱 Step 2: Build frontend (replace with your build command)
             - name: 🏗️ Build project
               run: |
-                  npm install
+                  npm install --legacy-peer-deps
                   npm run build
 
             # 📤 Step 3: Upload dist folder to your server

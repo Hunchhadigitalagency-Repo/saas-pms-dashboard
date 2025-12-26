@@ -1,6 +1,6 @@
 // /Users/vneetkarki/Desktop/pms/frontend/src/pages/dashboard/work_items/components/WorkItemListSkeleton.tsx
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
     Breadcrumb,

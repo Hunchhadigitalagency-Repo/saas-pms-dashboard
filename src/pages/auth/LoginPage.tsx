@@ -1,4 +1,4 @@
-import { GalleryVerticalEnd, Loader } from "lucide-react";
+import { Loader } from "lucide-react";
 import { LoginForm } from "@/components/login-form";
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";

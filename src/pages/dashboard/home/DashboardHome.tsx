@@ -5,8 +5,6 @@ import {
     BreadcrumbItem,
     BreadcrumbLink,
     BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,13 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Filter, ChevronDown, Plus } from "lucide-react";
+import { Filter, ChevronDown } from "lucide-react";
 import { ProjectSummary } from "./components/ProjectSummary";
-import { RecentWorkItems } from "./components/RecentWorkItems";
 import { TasksPriorityPieChart } from "./components/TasksPriorityPieChart";
 import { TasksStatusPieChart } from "./components/TasksStatusPieChart";
 import { OverdueTasks } from "./components/OverdueTasks";
-import { TeamWorkload } from "./components/TeamWorkload";
 import ProjectProgress from "@/components/ProjectProgress";
 
 const DashboardHome = () => {

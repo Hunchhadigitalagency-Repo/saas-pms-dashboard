@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Link as LinkIcon, Pencil, ListTodo } from "lucide-react";
+import { Link as LinkIcon, Pencil, ListTodo } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,

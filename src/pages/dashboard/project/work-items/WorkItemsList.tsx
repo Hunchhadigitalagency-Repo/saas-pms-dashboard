@@ -249,7 +249,7 @@ export default function WorkItemsList() {
 
     const handleDelete = async () => {
         if (!itemToDelete) return;
-
+        console.log("Deleting item with ID:", isDeleting);
         setIsDeleting(true);
         const prevWorkItems = [...workItems];
         // Optimistic delete

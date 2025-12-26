@@ -1,8 +1,6 @@
-import React from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import type { WorkItem } from "../work_item_services/types";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     Tooltip,
@@ -10,7 +8,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { GripVertical, Clock, CheckCircle2, Circle, Calendar, Option, Ellipsis, Flag, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Clock, CheckCircle2, Circle, Flag, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -66,16 +64,7 @@ const KanbanView = ({ workItems, updateWorkItemStatus, openViewDrawer, openEditM
         },
     };
 
-    const getPriorityColor = (priority: string) => {
-        switch (priority.toLowerCase()) {
-            case "high":
-                return "bg-red-500";
-            case "medium":
-                return "bg-amber-500";
-            default:
-                return "bg-slate-400";
-        }
-    };
+
 
     const getPriorityFlagColor = (priority: string) => {
         switch (priority.toLowerCase()) {
@@ -146,7 +135,7 @@ const KanbanView = ({ workItems, updateWorkItemStatus, openViewDrawer, openEditM
                                         }}
                                     >
                                         {columnItems.map((item, index) => {
-                                            const isOverdue = item.due_date && new Date(item.due_date) < new Date();
+
 
                                             return (
                                                 <Draggable

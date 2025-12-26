@@ -44,7 +44,7 @@ export function ActivityTab() {
 
     useEffect(() => {
         if (!projectId) return;
-
+        console.log(error)
         // Generate webhook URL
         const url = generateWebhookUrl(projectId);
         setWebhookUrl(url);

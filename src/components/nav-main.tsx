@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ChevronRight, type LucideIcon, SquareTerminal } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import {

@@ -1,7 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  SELECTION_CHANGE_COMMAND,
   UNDO_COMMAND,
   REDO_COMMAND,
   FORMAT_TEXT_COMMAND,
@@ -13,13 +12,11 @@ import {
   INSERT_ORDERED_LIST_COMMAND,
   INSERT_CHECK_LIST_COMMAND,
   REMOVE_LIST_COMMAND,
-  $isListNode,
   ListNode
 } from '@lexical/list';
 import { $isLinkNode } from '@lexical/link';
-import { Bold, Italic, Underline, Strikethrough, Link, List, ListOrdered, CheckSquare, Undo, Redo } from 'lucide-react';
+import { Bold, Italic, Underline, Strikethrough, List, ListOrdered, CheckSquare, Undo, Redo } from 'lucide-react';
 import { $getNearestNodeOfType } from '@lexical/utils';
-import { LinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
 
 export default function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -50,6 +47,7 @@ export default function ToolbarPlugin() {
   }, [editor]);
 
   useEffect(() => {
+    console.log(isLink);
     return editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
         updateToolbar();
