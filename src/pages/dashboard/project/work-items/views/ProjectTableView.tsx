@@ -54,9 +54,7 @@ export default function ProjectTableView({
     const getSortIcon = (field: string) => {
         const sortItem = sortConfig.find(item => item.field === field);
         const index = sortConfig.findIndex(item => item.field === field);
-
         if (!sortItem) return <ArrowUpDown size={14} className="opacity-50" />
-
         let Icon = ArrowUpDown;
         if (sortItem.direction === "asc") Icon = ArrowUp;
         else if (sortItem.direction === "desc") Icon = ArrowDown;
