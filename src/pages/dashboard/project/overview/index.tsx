@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
-import { Link as AlertCircle } from "lucide-react"
+import { Link as AlertCircle, BarChart3, Package, CheckSquare, FileText, Users, History, Settings } from "lucide-react"
 import { fetchProjectDetails, type ProjectDetails } from "./services/FetchProjectDetails"
 import {
     Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator,
@@ -10,7 +10,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import toast from "react-hot-toast"
 import { ProjectDetailsSkeleton } from "./components/OrverviewLoadingSkeleton"
-import { TeamMembersTab, OverviewDetailsTab, ActivityTab, SettingsTab } from "./components/tabs"
+import { TeamMembersTab, OverviewDetailsTab, ActivityTab, SettingsTab, SprintsTab, ModulesTab, WorkItemTab, DocumentTab } from "./components/tabs"
 
 const errorOptions = {
     duration: 4000,
@@ -96,17 +96,57 @@ export default function ProjectOverview() {
 
             {/* Tabs at top */}
             <Tabs defaultValue="details" className="w-full flex flex-col flex-1">
-                <TabsList className="w-full justify-start overflow-x-auto bg-transparent border-b border-gray-200 rounded-none p-0 px-6">
-                    <TabsTrigger value="details" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent">Details</TabsTrigger>
-                    <TabsTrigger value="team" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent">Team</TabsTrigger>
-                    <TabsTrigger value="activity" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent">Activity</TabsTrigger>
-                    <TabsTrigger value="settings" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent">Settings</TabsTrigger>
+                <TabsList className="w-full justify-start overflow-x-auto bg-transparent border-b border-gray-200 rounded-none p-0 mx-6">
+                    <TabsTrigger value="details" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" />
+                        Details
+                    </TabsTrigger>
+                    <TabsTrigger value="sprints" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent flex items-center gap-2">
+                        <CheckSquare className="w-4 h-4" />
+                        Sprints
+                    </TabsTrigger>
+                    <TabsTrigger value="modules" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        Modules
+                    </TabsTrigger>
+                    <TabsTrigger value="workitem" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent flex items-center gap-2">
+                        <CheckSquare className="w-4 h-4" />
+                        Work Item
+                    </TabsTrigger>
+                    <TabsTrigger value="document" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Document
+                    </TabsTrigger>
+                    <TabsTrigger value="team" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Team
+                    </TabsTrigger>
+                    <TabsTrigger value="activity" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent flex items-center gap-2">
+                        <History className="w-4 h-4" />
+                        Activity
+                    </TabsTrigger>
+                    <TabsTrigger value="settings" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent flex items-center gap-2">
+                        <Settings className="w-4 h-4" />
+                        Settings
+                    </TabsTrigger>
                 </TabsList>
 
                 {/* Tab content */}
                 <div className="flex-1 overflow-y-auto px-6 pb-6">
                     <TabsContent value="details" className="mt-0 animate-in fade-in duration-300 ease-in-out">
                         <OverviewDetailsTab project={project} />
+                    </TabsContent>
+                    <TabsContent value="sprints" className="mt-0 pt-6 animate-in fade-in duration-300 ease-in-out">
+                        <SprintsTab />
+                    </TabsContent>
+                    <TabsContent value="modules" className="mt-0 pt-6 animate-in fade-in duration-300 ease-in-out">
+                        <ModulesTab />
+                    </TabsContent>
+                    <TabsContent value="workitem" className="mt-0 pt-6 animate-in fade-in duration-300 ease-in-out">
+                        <WorkItemTab />
+                    </TabsContent>
+                    <TabsContent value="document" className="mt-0 pt-6 animate-in fade-in duration-300 ease-in-out">
+                        <DocumentTab />
                     </TabsContent>
                     <TabsContent value="team" className="mt-0 pt-6 animate-in fade-in duration-300 ease-in-out"><TeamMembersTab project={project} onRefresh={loadProject} /></TabsContent>
                     <TabsContent value="activity" className="mt-0 pt-6 animate-in fade-in duration-300 ease-in-out"><ActivityTab /></TabsContent>

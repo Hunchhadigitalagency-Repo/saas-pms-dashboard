@@ -97,7 +97,7 @@ export function OverviewDetailsTab({ project }: OverviewDetailsTabProps) {
             <Card className="rounded-lg shadow-none bg-white border-0 p-0 mb-0">
                 <CardContent className="p-0">
                     <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-0 my-5">
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-0">
                             <div>
                                 <div className="text-xs font-medium text-gray-500 mb-2">Status</div>
                                 <div className="flex items-center gap-2 capitalize">{statusBadge(project.status)}</div>
@@ -192,7 +192,7 @@ export function OverviewDetailsTab({ project }: OverviewDetailsTabProps) {
                             </div>
                         </div>
                         <Separator className="my-3" />
-                        <div className="mb-0 my-5">
+                        <div className="mb-0">
                             <h3 className="font-medium text-xs text-gray-600 mb-2">Description</h3>
                             <p className="text-xs text-gray-700 leading-relaxed">
                                 {cleanDescription || "No description provided"}
