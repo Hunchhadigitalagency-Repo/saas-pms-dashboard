@@ -112,7 +112,7 @@ export default function ProjectTableView({
             <table className="w-full">
                 <thead>
                     <tr className="border">
-                        <th className="text-left p-4 text-[11px] text-gray-700">
+                        <th className="text-left p-4 text-[11px] w-[7%] text-gray-700">
                             <span className="">SN</span>
                         </th>
                         <th className="text-left p-4 text-[11px] w-[60%] text-gray-700">

@@ -112,6 +112,9 @@ export default function TableView({
             <table className="w-full">
                 <thead>
                     <tr className="border">
+                        <th className="text-left p-4 text-[11px] w-[7%] text-gray-700">
+                            SN
+                        </th>
                         <th className="text-left p-4 text-[11px] w-[60%] text-gray-700">
                             <button
                                 onClick={() => handleSort("title")}
@@ -164,6 +167,8 @@ export default function TableView({
                             className="border hover:bg-gray-50 cursor-pointer"
                             onClick={() => openViewDrawer(item)}
                         >
+                            <td className="px-3 py-1 text-[11px]"><span className="font-medium">WI-{item.id}</span> </td>
+
                             <td className="px-3 py-1 text-[11px]"><span className="font-medium">{item.title}</span> </td>
                             <td className="px-3 py-1" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
