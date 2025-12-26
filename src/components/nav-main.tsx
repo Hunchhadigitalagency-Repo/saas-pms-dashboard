@@ -74,7 +74,7 @@ export function NavMain() {
                   onClick={() => handleItemClick(item.id)}
                 >
                   {item.icon && <item.icon />}
-                  <span>{item.title}</span>
+                  <span className="text-xs font-medium">{item.title}</span>
                   <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                 </SidebarMenuButton>
               </CollapsibleTrigger>
@@ -84,7 +84,7 @@ export function NavMain() {
                     <SidebarMenuSubItem key={subItem.title}>
                       <SidebarMenuSubButton asChild>
                         <Link to={subItem.url}>
-                          <span>{subItem.title}</span>
+                          <span className="text-xs">{subItem.title}</span>
                         </Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>

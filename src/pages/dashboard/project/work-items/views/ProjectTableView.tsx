@@ -19,7 +19,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, Eye, Edit, Trash2, ChevronDown } from "lucide-react"
-import type { WorkItem } from "../work_item_services/types"
+import type { WorkItem } from "../work_item_services/FetchWorkItems"
 
 export type SortConfigItem = {
     field: string;
@@ -39,7 +39,7 @@ type Props = {
     updateWorkItemPriority: (itemId: number, newPriority: WorkItem['priority']) => void
 }
 
-export default function TableView({
+export default function ProjectTableView({
     workItems,
     updatingStatusIds,
     updatingPriorityIds,
@@ -112,6 +112,9 @@ export default function TableView({
             <table className="w-full">
                 <thead>
                     <tr className="border">
+                        <th className="text-left p-4 text-[11px] text-gray-700">
+                            <span className="">SN</span>
+                        </th>
                         <th className="text-left p-4 text-[11px] w-[60%] text-gray-700">
                             <button
                                 onClick={() => handleSort("title")}
@@ -154,7 +157,7 @@ export default function TableView({
                             </div>
                         </th>
 
-                        <th className="text-right font-normal p-4 text-[11px] text-gray-700">Action</th>
+                        <th className="text-right w-[0.1%] p-4 text-[11px] text-gray-700">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -164,6 +167,7 @@ export default function TableView({
                             className="border hover:bg-gray-50 cursor-pointer"
                             onClick={() => openViewDrawer(item)}
                         >
+                            <td className="px-3 py-1 text-[11px]">WI-{item.id}</td>
                             <td className="px-3 py-1 text-[11px]"><span className="font-medium">{item.title}</span> </td>
                             <td className="px-3 py-1" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
@@ -243,7 +247,7 @@ export default function TableView({
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <div className="relative hover:z-10 transition-transform hover:scale-110">
-                                                                <Avatar className="w-7 h-7 p-0 border-2 border-white bg-black">
+                                                                <Avatar className="w-8 h-8 p-0 border-2 border-white bg-black">
                                                                     <AvatarImage src={user.profile?.profile_picture || undefined} alt={user.username} className="object-cover" />
                                                                     <AvatarFallback className="text-xs text-white bg-slate-400/10">
                                                                         {user.username.charAt(0).toUpperCase()}

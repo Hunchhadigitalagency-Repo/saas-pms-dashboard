@@ -1,8 +1,7 @@
 import React from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import type { WorkItem } from "../work_item_services/types";
+import type { WorkItem } from "../services/FetchWorkItems"
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     Tooltip,
@@ -10,7 +9,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { GripVertical, Clock, CheckCircle2, Circle, Calendar, Option, Ellipsis, Flag, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Clock, CheckCircle2, Circle, Calendar, Flag, Eye, Edit, Trash2, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -27,7 +26,7 @@ type Props = {
     openDeleteModal: (itemId: number) => void;
 };
 
-const KanbanView = ({ workItems, updateWorkItemStatus, openViewDrawer, openEditModal, openDeleteModal }: Props) => {
+const ProjectKanbanView = ({ workItems, updateWorkItemStatus, openViewDrawer, openEditModal, openDeleteModal }: Props) => {
     const onDragEnd = (result: any) => {
         const { destination, source, draggableId } = result;
 
@@ -175,15 +174,14 @@ const KanbanView = ({ workItems, updateWorkItemStatus, openViewDrawer, openEditM
                                                                 }}
                                                             >
                                                                 <CardContent className="p-3 space-y-1 py-4" {...provided.dragHandleProps}>
-                                                                    {/* Header with Project and Action Menu */}
+                                                                    {/* Action Menu */}
                                                                     <div className="flex items-start justify-between mb-2 gap-2">
-                                                                        {/* Project */}
-                                                                        <div>
-                                                                            {item.project?.name && (
-                                                                                <div className="text-[10px] rounded bg-slate-100 dark:bg-slate-700 px-2 py-1 inline text-slate-500 dark:text-slate-400">
-                                                                                    {item.project.name}
-                                                                                </div>
-                                                                            )}
+                                                                        <div className="flex items-start gap-2">
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <h4 className="text-xs font-light text-slate-900 dark:text-slate-200 leading-snug break-words">
+                                                                                    {item.title}
+                                                                                </h4>
+                                                                            </div>
                                                                         </div>
                                                                         {/* Action Menu */}
                                                                         <DropdownMenu>
@@ -222,13 +220,7 @@ const KanbanView = ({ workItems, updateWorkItemStatus, openViewDrawer, openEditM
                                                                         </DropdownMenu>
                                                                     </div>
                                                                     {/* Title */}
-                                                                    <div className="flex items-start gap-2 mt-2">
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <h4 className="text-xs font-light text-slate-900 dark:text-slate-200 leading-snug break-words">
-                                                                                {item.title}
-                                                                            </h4>
-                                                                        </div>
-                                                                    </div>
+
 
                                                                     {/* Footer: Due Date and Assigned To */}
                                                                     <div className="flex items-center justify-between pt-3 gap-2">
@@ -321,4 +313,4 @@ const KanbanView = ({ workItems, updateWorkItemStatus, openViewDrawer, openEditM
     );
 };
 
-export default KanbanView;
+export default ProjectKanbanView;

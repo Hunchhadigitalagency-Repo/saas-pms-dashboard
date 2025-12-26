@@ -39,7 +39,7 @@ import { updateWorkItem } from "../work_item_services/UpdateWorkItem"
 interface WorkItemFormProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    onSubmitSuccess: () => void
+    onSubmitSuccess: (item: WorkItem) => void
     formData: Omit<WorkItem, 'id' | 'created_at' | 'updated_at'>
     setFormData: (data: Omit<WorkItem, 'id' | 'created_at' | 'updated_at'>) => void
     mode: "add" | "edit"
@@ -102,12 +102,15 @@ export function WorkItemForm({
         };
 
         try {
+            let result: WorkItem;
             if (mode === 'add') {
-                await createWorkItem(payload);
+                result = await createWorkItem(payload);
             } else if (mode === 'edit' && workItemId) {
-                await updateWorkItem(workItemId, payload);
+                result = await updateWorkItem(Number(workItemId), payload);
+            } else {
+                return;
             }
-            onSubmitSuccess();
+            onSubmitSuccess(result);
             onOpenChange(false);
         } catch (error) {
             console.error(`Failed to ${mode === 'add' ? 'create' : 'update'} work item:`, error);

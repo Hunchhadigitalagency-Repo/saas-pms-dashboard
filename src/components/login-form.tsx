@@ -69,7 +69,7 @@ export function LoginForm({
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-6">
-              <div className="flex flex-col gap-4">
+              {/* <div className="flex flex-col gap-4">
                 <Button variant="outline" className="w-full bg-white text-primary hover:bg-gray-200">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
                     <path
@@ -84,7 +84,7 @@ export function LoginForm({
                 <span className="text-gray-500 relative z-10 px-2">
                   Or continue with
                 </span>
-              </div>
+              </div> */}
               <div className="grid gap-4">
                 <div className="grid gap-3">
                   <Label htmlFor="email" className="text-primary">Email</Label>
@@ -125,12 +125,12 @@ export function LoginForm({
                   Login
                 </Button>
               </div>
-              <div className="text-center text-sm text-primary">
+              {/* <div className="text-center text-sm text-primary">
                 Don&apos;t have an account?{" "}
                 <Link to="/register" className="text-secondary hover:underline">
                   Sign up
                 </Link>
-              </div>
+              </div> */}
             </div>
           </form>
         </CardContent>

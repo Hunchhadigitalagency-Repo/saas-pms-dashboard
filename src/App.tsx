@@ -10,16 +10,17 @@ import PolicyPage from './pages/public_pages/Policy';
 import TermsPage from './pages/public_pages/Terms';
 import DashboardLayout from './pages/layouts/DashboardLayout';
 import DashboardHome from './pages/dashboard/home/DashboardHome';
-import ProjectList from './pages/dashboard/project/ProjectList';
+import ProjectList from './pages/dashboard/project/list/ProjectList';
 import { Toaster } from 'react-hot-toast';
 import WorkItemsList from './pages/dashboard/work_items/WorkItems';
 import ProjectWorkItemsList from './pages/dashboard/project/work-items/WorkItemsList';
+import ProjectOverview from './pages/dashboard/project/overview/index';
 
 function App() {
 
   return (
     <Router>
-      <Toaster position="top-right" reverseOrder={false} />
+      <Toaster position="bottom-right" reverseOrder={false} />
       <Routes>
         {/* Auth Routes */}
         <Route path="/login" element={<LoginPage />} />
@@ -40,6 +41,8 @@ function App() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />
           <Route path="projects" element={<ProjectList />} />
+          <Route path="projects/overview/:projectId" element={<ProjectList />} />
+          <Route path="project/:projectId/overview" element={<ProjectOverview />} />
           <Route path="work-items" element={<WorkItemsList />} />
           <Route path="project/:projectId/work-items" element={<ProjectWorkItemsList />} />
         </Route>

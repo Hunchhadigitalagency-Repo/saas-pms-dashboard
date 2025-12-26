@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import toast from "react-hot-toast"
+import { successOptions, errorOptions } from "@/core/utils/toast-styles"
 import {
     Dialog,
     DialogContent,
@@ -18,7 +20,7 @@ import {
     FileClock,
     Loader2
 } from "lucide-react"
-import { type Project, type TeamMember } from "../project_services/types"
+import { type Project, type TeamMember } from "../../types/types"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -31,14 +33,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Plus } from "lucide-react"
 import { getMyClientUsers } from "@/core/utils/getMyClientUsers"
-import { type User } from "../project_services/types"
-import { createProject } from "../project_services/CreateProject"
-import { updateProject } from "../project_services/UpdateProject"
+import { type User } from "../../types/types"
+import { createProject } from "../services/CreateProject"
+import { updateProject } from "../services/UpdateProject"
 
 interface ProjectFormProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    onSubmitSuccess: () => void
+    onSubmitSuccess: (savedProject: Project) => void
     formData: Omit<Project, 'id' | 'created_at' | 'updated_at'>
     setFormData: (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => void
     mode: "add" | "edit"
@@ -114,16 +116,21 @@ export function ProjectForm({
         };
 
         try {
+            let savedProject: Project;
             if (mode === 'add') {
-                await createProject(projectPayload);
+                savedProject = await createProject(projectPayload);
+                toast.success(`Project "${savedProject.name}" created successfully 🚀`, successOptions);
             } else if (mode === 'edit' && projectId) {
-                await updateProject(projectId, projectPayload);
+                savedProject = await updateProject(projectId, projectPayload);
+                toast.success(`Project "${savedProject.name}" updated successfully ✨`, successOptions);
+            } else {
+                throw new Error('Invalid mode or missing project ID');
             }
-            onSubmitSuccess();
+            onSubmitSuccess(savedProject);
             onOpenChange(false);
         } catch (error) {
             console.error(`Failed to ${mode === 'add' ? 'create' : 'update'} project:`, error);
-            // Optionally, show an error message to the user
+            toast.error(`Failed to ${mode === 'add' ? 'create' : 'update'} project`, errorOptions);
         } finally {
             setIsSubmitting(false);
         }

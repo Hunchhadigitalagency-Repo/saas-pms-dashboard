@@ -1,44 +1,18 @@
 import axios from "axios";
+import { BASE_URL } from "@/core/api/constant";
+import type { Project } from "../../types/types";
+export type { Project } from "../../types/types";
 
-export interface User {
-    id: number;
-    username: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-    profile?: {
-        profile_picture?: string;
-    };
-}
-
-export interface ProjectLite {
-    id: number;
-    name: string;
-}
-
-export interface WorkItem {
-    id: number;
-    assigned_to: User[];
-    title: string;
-    description: string;
-    due_date: string;
-    status: string;
-    priority: string;
-    created_at: string;
-    updated_at: string;
-    project: ProjectLite;
-}
-
-interface WorkItemResponse {
+interface ProjectResponse {
     total_items: number;
     current_page: number;
     total_pages: number;
     next: string | null;
     previous: string | null;
-    results: WorkItem[];
+    results: Project[];
 }
 
-export async function fetchWorkItems(projectId: string): Promise<WorkItem[]> {
+export async function fetchProjects(): Promise<Project[]> {
     const domainsString = localStorage.getItem("domains");
     let baseUrl = "";
 
@@ -55,29 +29,32 @@ export async function fetchWorkItems(projectId: string): Promise<WorkItem[]> {
     }
 
     if (!baseUrl) {
-        throw new Error("Base URL not found. Cannot fetch work items.");
+        // fallback to app-wide BASE_URL if domains not present in localStorage
+        console.warn("domains not found in localStorage; falling back to BASE_URL")
+        baseUrl = BASE_URL
     }
 
-    let allWorkItems: WorkItem[] = [];
+    let allProjects: Project[] = [];
     let currentPage = 1;
     let totalPages = 1;
 
+
     while (currentPage <= totalPages) {
-        const url = `${baseUrl}/work-items/?project=${projectId}&page=${currentPage}`;
+        const url = `${baseUrl}/projects/?page=${currentPage}`;
         try {
-            const response = await axios.get<WorkItemResponse>(url, {
+            const response = await axios.get<ProjectResponse>(url, {
                 withCredentials: true, // Include cookies with request
             });
 
             const data = response.data;
-            allWorkItems = [...allWorkItems, ...data.results];
+            allProjects = [...allProjects, ...data.results];
             totalPages = data.total_pages;
             currentPage++;
         } catch (error) {
-            console.error("Failed to fetch work items:", error);
+            console.error("Failed to fetch projects:", error);
             throw error; // bubble up instead of silently failing
         }
     }
 
-    return allWorkItems;
+    return allProjects;
 }

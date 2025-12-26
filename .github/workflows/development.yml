@@ -1,0 +1,47 @@
+name: 🚀 Deploy Frontend to Server
+
+on:
+    push:
+        branches:
+            - main # 👈 deploy only when pushing to main branch
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+            # 🧰 Step 1: Checkout repository
+            - name: 🧾 Checkout code
+              uses: actions/checkout@v4
+
+            # 🧱 Step 2: Build frontend (replace with your build command)
+            - name: 🏗️ Build project
+              run: |
+                  npm install
+                  npm run build
+
+            # 📤 Step 3: Upload dist folder to your server
+            - name: 📦 Upload build files to server
+              uses: appleboy/scp-action@master
+              with:
+                  host: ${{ secrets.PRODUCTION_SSH_HOST }}
+                  username: ${{ secrets.PRODUCTION_SSH_USERNAME }}
+                  password: ${{ secrets.PRODUCTION_SSH_PASSWORD }}
+                  source: "dist/*"
+                  target: "/mnt/volume_blr1_04/project/pms/frontend"
+                  overwrite: true
+
+            # ⚙️ Step 4: SSH into the server and do post-deploy tasks
+            - name: 🚀 Run post-deploy commands
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.PRODUCTION_SSH_HOST }}
+                  username: ${{ secrets.PRODUCTION_SSH_USERNAME }}
+                  password: ${{ secrets.PRODUCTION_SSH_PASSWORD }}
+                  script: |
+                      cd /mnt/volume_blr1_04/project/pms/frontend
+
+                      echo "🧹 Cleaning old cache files..."
+                      rm -rf node_modules .cache || true
+
+                      echo "✅ Deployment complete! Files are already extracted and live."

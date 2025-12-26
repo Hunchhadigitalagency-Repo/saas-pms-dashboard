@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import toast from "react-hot-toast"
+import { successOptions, errorOptions } from "@/core/utils/toast-styles"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Search, ChevronDown, Filter, MoreHorizontal, Edit, Trash2, Eye, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Plus, Search, ChevronDown, Filter, LayoutList, KanbanSquare } from "lucide-react"
 import { fetchWorkItems } from "./work_item_services/FetchWorkItems"
 import type { WorkItem } from "./work_item_services/types"
 import { deleteWorkItem } from "./work_item_services/DeleteWorkItem"
@@ -26,16 +26,15 @@ import { Separator } from "@/components/ui/separator"
 import {
     SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { List, LayoutGrid } from "lucide-react"
 
 // Import the new components
 import { DeleteConfirmationDialog } from "./components/DeleteConfirmationDialog"
 import { WorkItemForm } from "./components/WorkItemForm"
 import { WorkItemDetailDrawer } from "./components/WorkItemDetailDrawer"
 import { WorkItemListSkeleton } from "./components/WorkItemListSkeleton"
-import TableView from "./views/TableView"
+
+import TableView, { type SortConfigItem } from "./views/TableView"
 import KanbanView from "./views/KanbanView"
-import { tr } from "zod/v4/locales"
 
 export default function WorkItemsList() {
     const [view, setView] = useState<"list" | "board">("list")
@@ -47,10 +46,11 @@ export default function WorkItemsList() {
     const [priorityFilter, setPriorityFilter] = useState<string>("")
     const [dueDateFilter, setDueDateFilter] = useState<string>("")
     const [projectFilter, setProjectFilter] = useState<string>("")
-    const [sortField, setSortField] = useState<string>("")
-    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
+    const [sortConfig, setSortConfig] = useState<SortConfigItem[]>([])
     const [isDeleting, setIsDeleting] = useState(false)
-    const [updatingItems, setUpdatingItems] = useState<number[]>([])
+    const [updatingStatusIds, setUpdatingStatusIds] = useState<number[]>([])
+    const [updatingPriorityIds, setUpdatingPriorityIds] = useState<number[]>([])
 
     // Modal states
     const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -91,38 +91,78 @@ export default function WorkItemsList() {
     }, [])
 
     const updateWorkItemStatus = async (itemId: number, newStatus: WorkItem['status']) => {
-        setUpdatingItems(prev => [...prev, itemId])
+        const prevWorkItems = [...workItems];
+        setUpdatingStatusIds(prev => [...prev, itemId])
+
+        // Optimistic update
+        setWorkItems(prev => prev.map(item =>
+            item.id === itemId ? { ...item, status: newStatus } : item
+        ));
+
         try {
             await updateWorkItem(String(itemId), { status: newStatus });
-            await loadWorkItems(); // Reload to reflect changes
+            // No need to reload, we already updated locally. 
+            // Ideally we should merge the server response, but status update is simple.
+            const item = prevWorkItems.find(i => i.id === itemId);
+            toast.success(
+                `Status for "${item?.title}" updated to ${newStatus.replace('_', ' ')}`,
+                successOptions
+            );
         } catch (error) {
             console.error(`Failed to update status for item ${itemId}:`, error);
-            // Optionally, show an error message to the user
+            // Revert on error
+            setWorkItems(prevWorkItems);
+            toast.error("Failed to update status", errorOptions);
         } finally {
-            setUpdatingItems(prev => prev.filter(id => id !== itemId))
+            setUpdatingStatusIds(prev => prev.filter(id => id !== itemId))
         }
     };
 
     const updateWorkItemPriority = async (itemId: number, newPriority: WorkItem['priority']) => {
-        setUpdatingItems(prev => [...prev, itemId])
+        const prevWorkItems = [...workItems];
+        setUpdatingPriorityIds(prev => [...prev, itemId])
+
+        // Optimistic update
+        setWorkItems(prev => prev.map(item =>
+            item.id === itemId ? { ...item, priority: newPriority } : item
+        ));
+
         try {
             await updateWorkItem(String(itemId), { priority: newPriority });
-            await loadWorkItems(); // Reload to reflect changes
+            const item = prevWorkItems.find(i => i.id === itemId);
+            toast.success(
+                `Priority for "${item?.title}" updated to ${newPriority}`,
+                successOptions
+            );
         } catch (error) {
             console.error(`Failed to update priority for item ${itemId}:`, error);
-            // Optionally, show an error message to the user
+            // Revert on error
+            setWorkItems(prevWorkItems);
+            toast.error("Failed to update priority", errorOptions);
         } finally {
-            setUpdatingItems(prev => prev.filter(id => id !== itemId))
+            setUpdatingPriorityIds(prev => prev.filter(id => id !== itemId))
         }
     };
 
     const handleSort = (field: string) => {
-        if (sortField === field) {
-            setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-        } else {
-            setSortField(field)
-            setSortDirection("asc")
-        }
+        setSortConfig((prevConfig) => {
+            const existingIndex = prevConfig.findIndex((item) => item.field === field);
+            const newConfig = [...prevConfig];
+
+            if (existingIndex > -1) {
+                // Cycle: asc -> desc -> remove
+                const currentDirection = newConfig[existingIndex].direction;
+                if (currentDirection === "asc") {
+                    newConfig[existingIndex].direction = "desc";
+                } else {
+                    newConfig.splice(existingIndex, 1);
+                }
+            } else {
+                // Add new sort field
+                newConfig.push({ field, direction: "asc" });
+            }
+            return newConfig;
+        });
     }
 
     if (loading) {
@@ -179,62 +219,84 @@ export default function WorkItemsList() {
     const handleDelete = async () => {
         if (itemToDelete === null) return
         setIsDeleting(true)
+        const prevWorkItems = [...workItems];
+
+        // Optimistic update
+        setWorkItems(prev => prev.filter(item => item.id !== itemToDelete));
+        setDeleteModalOpen(false)
+
         try {
             await deleteWorkItem(itemToDelete)
-            await loadWorkItems()
-            setDeleteModalOpen(false)
+            // Success, keeping local state
+            const item = prevWorkItems.find(i => i.id === itemToDelete);
+            toast.success(`Work item "${item?.title}" deleted successfully`, successOptions);
             setItemToDelete(null)
         } catch (err) {
             console.error("Failed to delete work item:", err)
-            // Optionally show an error message
+            // Revert
+            setWorkItems(prevWorkItems);
+            setDeleteModalOpen(true); // Re-open modal or just show error
+            toast.error("Failed to delete work item", errorOptions);
         } finally {
             setIsDeleting(false)
         }
     }
 
-    const handleFormSubmitSuccess = async () => {
+    const handleFormSubmitSuccess = async (savedItem: WorkItem) => {
         setFormOpen(false)
-        await loadWorkItems()
+        if (formMode === "add") {
+            setWorkItems(prev => [savedItem, ...prev]);
+            toast.success("Work item created successfully", successOptions);
+        } else if (formMode === "edit") {
+            setWorkItems(prev => prev.map(item => item.id === savedItem.id ? savedItem : item));
+            toast.success("Work item updated successfully", successOptions);
+        }
     }
 
-    const sortedWorkItems = [...workItems]
-        .filter(item => {
-            const searchValue = search.toLowerCase()
-            const statusMatch = !statusFilter || item.status === statusFilter
-            const priorityMatch = !priorityFilter || item.priority === priorityFilter
-            const projectMatch = !projectFilter || item.project.name === projectFilter
-            const dueDateMatch = !dueDateFilter || (item.due_date && item.due_date.startsWith(dueDateFilter))
+    // Filter Logic
+    const filteredWorkItems = workItems.filter((item) => {
+        return (
+            item.title.toLowerCase().includes(search.toLowerCase()) &&
+            (statusFilter ? item.status === statusFilter : true) &&
+            (priorityFilter ? item.priority === priorityFilter : true) &&
+            (dueDateFilter ? item.due_date === dueDateFilter : true) &&
+            (projectFilter ? item.project.name === projectFilter : true)
+        )
+    })
 
-            const searchMatch =
-                item.title.toLowerCase().includes(searchValue) ||
-                item.description.toLowerCase().includes(searchValue) ||
-                item.project.name.toLowerCase().includes(searchValue)
+    // Sort Logic
+    const sortedWorkItems = [...filteredWorkItems].sort((a, b) => {
+        for (const { field, direction } of sortConfig) {
+            let aValue: any = a[field as keyof WorkItem];
+            let bValue: any = b[field as keyof WorkItem];
 
-            return statusMatch && priorityMatch && projectMatch && dueDateMatch && searchMatch
-        })
-        .sort((a, b) => {
-            if (!sortField) return 0
-
-            const aValue = a[sortField as keyof WorkItem]
-            const bValue = b[sortField as keyof WorkItem]
-
-            if (aValue === null || aValue === undefined) return sortDirection === "asc" ? 1 : -1
-            if (bValue === null || bValue === undefined) return sortDirection === "asc" ? -1 : 1
-
-            if (typeof aValue === 'string' && typeof bValue === 'string') {
-                return sortDirection === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+            if (field === "status") {
+                const statusOrder = { "pending": 1, "in_progress": 2, "completed": 3 };
+                aValue = statusOrder[a.status as keyof typeof statusOrder] || 0;
+                bValue = statusOrder[b.status as keyof typeof statusOrder] || 0;
+            } else if (field === "priority") {
+                const priorityOrder = { "high": 3, "medium": 2, "low": 1 };
+                aValue = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+                bValue = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+            } else if (field === "due_date") {
+                aValue = a.due_date ? new Date(a.due_date).getTime() : 0;
+                bValue = b.due_date ? new Date(b.due_date).getTime() : 0;
+            } else if (field === "assigned_to") {
+                aValue = a.assigned_to.map((u: any) => u.username).join(", ").toLowerCase();
+                bValue = b.assigned_to.map((u: any) => u.username).join(", ").toLowerCase();
+            } else if (typeof aValue === 'string') {
+                aValue = aValue.toLowerCase();
+                bValue = bValue.toLowerCase();
             }
 
-            if (typeof aValue === 'number' && typeof bValue === 'number') {
-                return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-            }
-
-            // Fallback for other types
-            return 0
-        })
+            if (aValue < bValue) return direction === "asc" ? -1 : 1;
+            if (aValue > bValue) return direction === "asc" ? 1 : -1;
+        }
+        return 0;
+    });
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6 px-6">
             {/* Delete Confirmation Modal */}
             <DeleteConfirmationDialog
                 open={deleteModalOpen}
@@ -262,10 +324,10 @@ export default function WorkItemsList() {
             />
 
             {/* Main Content */}
-            <Card className="shadow-none border-none p-0">
-                <CardContent>
-                    {/* Search & Filters */}
-                    <div className="flex justify-between gap-4">
+            <Card className="shadow-none border-none p-0 bg-transparent">
+                <CardContent className="p-0">
+                    {/* Header & Controls */}
+                    <div className="flex justify-between gap-4 ">
                         <div className="flex item-center gap-2">
                             <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
                                 <div className="flex items-center gap-2 px-4">
@@ -290,27 +352,21 @@ export default function WorkItemsList() {
                                 </div>
                             </header>
                         </div>
-                        <div className="flex items-center gap-2">
-                            {/* view changer */}
-                            <div className='flex items-center gap-2'>
-                                <Button
-                                    variant={view === 'list' ? 'secondary' : 'ghost'}
-                                    size="sm"
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                            {/* View Toggles */}
+                            <div className="flex bg-gray-100 rounded-lg p-1 mr-2">
+                                <button
                                     onClick={() => setView('list')}
-                                    className = "h-8 rounded-md text-xs font-normal"
+                                    className={`p-1.5 rounded-md transition-all ${view === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
-                                    <List className="h-4 w-4 mr-2" />
-                                    List
-                                </Button>
-                                <Button
-                                    variant={view === 'board' ? 'secondary' : 'ghost'}
-                                    size="sm"
+                                    <LayoutList size={16} />
+                                </button>
+                                <button
                                     onClick={() => setView('board')}
-                                    className = "h-8 rounded-md text-xs font-normal"
+                                    className={`p-1.5 rounded-md transition-all ${view === 'board' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
-                                    <LayoutGrid className="h-4 w-4 mr-2" />
-                                    Board
-                                </Button>
+                                    <KanbanSquare size={16} />
+                                </button>
                             </div>
 
                             <div className="relative">
@@ -421,14 +477,14 @@ export default function WorkItemsList() {
                         </div>
                     </div>
 
-                    {/* Data Table */}
-                    <div className="mt-4">
+                    {/* Views Render */}
+                    <div>
                         {view === 'list' ? (
                             <TableView
                                 workItems={sortedWorkItems}
-                                updatingItems={updatingItems}
-                                sortField={sortField}
-                                sortDirection={sortDirection}
+                                updatingStatusIds={updatingStatusIds}
+                                updatingPriorityIds={updatingPriorityIds}
+                                sortConfig={sortConfig}
                                 handleSort={handleSort}
                                 openViewDrawer={openViewDrawer}
                                 openEditModal={openEditModal}
@@ -437,7 +493,13 @@ export default function WorkItemsList() {
                                 updateWorkItemPriority={updateWorkItemPriority}
                             />
                         ) : (
-                            <KanbanView workItems={sortedWorkItems} updateWorkItemStatus={updateWorkItemStatus} />
+                            <KanbanView
+                                workItems={sortedWorkItems}
+                                updateWorkItemStatus={updateWorkItemStatus}
+                                openViewDrawer={openViewDrawer}
+                                openEditModal={openEditModal}
+                                openDeleteModal={openDeleteModal}
+                            />
                         )}
                     </div>
                 </CardContent>

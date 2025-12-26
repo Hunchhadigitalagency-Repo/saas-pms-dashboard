@@ -10,18 +10,17 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import QuillEditor from "@/components/ui/text-editor-quill/rich-text-editor-quill"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RichTextEditor } from "@/components/ui/text-editor-lexical/rich-text-editor"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import {
     X, UserPlus, Calendar, FolderOpen, Clock,
     RefreshCw,
     CheckCircle,
     AlertTriangle,
     AlertCircle,
-    FileClock,
-    Loader2
+    FileClock
 } from "lucide-react"
-import { type WorkItem, type User } from "../work_item_services/types"
+import { type WorkItem, type User } from "../services/FetchWorkItems"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -34,10 +33,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Plus } from "lucide-react"
 import { getMyClientUsers } from "@/core/utils/getMyClientUsers"
-import { fetchProjects } from "../../project/list/services/FetchProject"
-import { createWorkItem } from "../work_item_services/CreateWorkItem"
-import { updateWorkItem } from "../work_item_services/UpdateWorkItem"
-import type { Project } from "../../project/list/services/FetchProject"
+import { createWorkItem } from "../services/CreateWorkItem"
+import { updateWorkItem } from "../services/UpdateWorkItem"
 
 interface WorkItemFormProps {
     open: boolean
@@ -60,12 +57,11 @@ export function WorkItemForm({
 }: WorkItemFormProps) {
     const [assigneeInput, setAssigneeInput] = useState("")
     const [hoveredAvatar, setHoveredAvatar] = useState<number | null>(null);
-    const [projects, setProjects] = useState<Project[]>([])
     const [users, setUsers] = useState<User[]>([])
-    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        async function fetchData() {
+        async function fetchUsers() {
             try {
                 const usersData = await getMyClientUsers()
                 if (usersData) {
@@ -74,19 +70,12 @@ export function WorkItemForm({
             } catch (error) {
                 console.error("Failed to fetch users:", error)
             }
-
-            try {
-                const projectsData = await fetchProjects()
-                setProjects(projectsData)
-            } catch (error) {
-                console.error("Failed to fetch projects:", error)
-            }
         }
 
         if (open) {
-            fetchData()
+            fetchUsers()
         }
-    }, [open, onSubmitSuccess])
+    }, [open])
 
     const addAssignee = (user: User) => {
         if (!formData.assigned_to.some(u => u.id === user.id)) {
@@ -105,21 +94,20 @@ export function WorkItemForm({
     }
 
     const handleSubmit = async () => {
+        setLoading(true)
         const payload = {
             ...formData,
             project: formData.project.id,
             assigned_to: formData.assigned_to.map(u => u.id)
         };
 
-        setIsSubmitting(true)
         try {
             let result: WorkItem;
             if (mode === 'add') {
                 result = await createWorkItem(payload);
             } else if (mode === 'edit' && workItemId) {
-                result = await updateWorkItem(String(workItemId), payload);
+                result = await updateWorkItem(Number(workItemId), payload);
             } else {
-                // Should not happen, but for safety
                 return;
             }
             onSubmitSuccess(result);
@@ -127,10 +115,9 @@ export function WorkItemForm({
         } catch (error) {
             console.error(`Failed to ${mode === 'add' ? 'create' : 'update'} work item:`, error);
         } finally {
-            setIsSubmitting(false)
+            setLoading(false)
         }
     };
-
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -175,7 +162,7 @@ export function WorkItemForm({
                             <Label htmlFor="description" className="text-xs font-medium">
                                 Description (Optional)
                             </Label>
-                            <QuillEditor
+                            <RichTextEditor
                                 value={formData.description || ""}
                                 onChange={(val) => setFormData({ ...formData, description: val })}
                                 placeholder="Provide details about this work item"
@@ -184,7 +171,7 @@ export function WorkItemForm({
                         </div>
 
                         {/* Status & Priority in a grid */}
-                        <div className="grid grid-cols-5 md:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-4 md:grid-cols-4 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="status" className="text-xs font-medium flex items-center gap-1">
                                     <FileClock className="h-4 w-4" /> Status <span className="text-red-500">*</span>
@@ -289,152 +276,139 @@ export function WorkItemForm({
                                 </div>
                             </div>
 
+                            {/* Project Display (Read-only) */}
                             <div className="space-y-2">
                                 <Label htmlFor="project" className="text-xs font-medium flex items-center gap-1">
-                                    <FolderOpen className="h-4 w-4" /> Project <span className="text-red-500">*</span>
+                                    <FolderOpen className="h-4 w-4" /> Project
                                 </Label>
-                                <Select
-                                    value={String(formData.project.id)}
-                                    onValueChange={(value) => {
-                                        const selectedProject = projects.find(p => p.id === Number(value))
-                                        if (selectedProject) {
-                                            setFormData({ ...formData, project: { id: selectedProject.id, name: selectedProject.name } })
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger id="project" className="w-full">
-                                        <div className="flex items-center">
-                                            <FolderOpen className="h-4 w-4 mr-2 text-gray-500" />
-                                            <SelectValue placeholder="Select project" />
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {projects.map(project => (
-                                            <SelectItem key={project.id} value={String(project.id)}>{project.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="flex items-center gap-2 p-2 border rounded-md bg-gray-50 text-gray-700">
+                                    <FolderOpen className="h-4 w-4 text-gray-500" />
+                                    <span className="text-xs font-medium">{formData.project.name || "Current Project"}</span>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                    This work item belongs to the current project
+                                </p>
                             </div>
+                        </div>
 
-                            {/* Assignees Field */}
-                            <div className="space-y-2">
-                                <Label htmlFor="assignedTo" className="text-xs font-medium flex items-center gap-1">
-                                    <UserPlus className="h-4 w-4" /> Assigned To
-                                </Label>
+                        {/* Assignees Field */}
+                        <div className="space-y-2">
+                            <Label htmlFor="assignedTo" className="text-xs font-medium flex items-center gap-1">
+                                <UserPlus className="h-4 w-4" /> Assigned To
+                            </Label>
 
-                                <div className="flex items-center gap-2">
-                                    {/* Avatar Stack */}
-                                    <div className="flex -space-x-2">
-                                        {formData.assigned_to.map((user, index) => (
-                                            <div
-                                                key={user.id}
-                                                className="relative group"
-                                                style={{ zIndex: hoveredAvatar === user.id ? 10 : 1 }}
-                                                onMouseEnter={() => setHoveredAvatar(user.id)}
-                                                onMouseLeave={() => setHoveredAvatar(null)}
-                                            >
-                                                <Avatar className="h-8 w-8 border-2 border-white transition-all duration-200 group-hover:scale-110 group-hover:shadow-md">
-                                                    <AvatarFallback className="bg-blue-100 text-blue-800 text-xs">
-                                                        {user.username.substring(0, 2).toUpperCase()}
-                                                    </AvatarFallback>
-                                                </Avatar>
+                            <div className="flex items-center gap-2">
+                                {/* Avatar Stack */}
+                                <div className="flex -space-x-2">
+                                    {formData.assigned_to.map((user, index) => (
+                                        <div
+                                            key={user.id}
+                                            className="relative group"
+                                            style={{ zIndex: hoveredAvatar === user.id ? 10 : 1 }}
+                                            onMouseEnter={() => setHoveredAvatar(user.id)}
+                                            onMouseLeave={() => setHoveredAvatar(null)}
+                                        >
+                                            <Avatar className="h-8 w-8 border-2 border-white transition-all duration-200 group-hover:scale-110 group-hover:shadow-md">
+                                                <AvatarFallback className="bg-blue-100 text-blue-800 text-xs">
+                                                    {user.username.substring(0, 2).toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
 
-                                                {/* Tooltip with name */}
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <div className="absolute inset-0 cursor-pointer" />
-                                                        </TooltipTrigger>
-                                                        <TooltipContent side="top">
-                                                            <p>{user.username}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
+                                            {/* Tooltip with name */}
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="absolute inset-0 cursor-pointer" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">
+                                                        <p>{user.username}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
 
-                                                {/* Remove button - only visible on hover */}
-                                                {hoveredAvatar === user.id && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            removeAssignee(user.id);
-                                                        }}
-                                                        className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 z-20"
-                                                        aria-label={`Remove ${user.username}`}
-                                                    >
-                                                        <X size={10} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Add Assignee Dropdown */}
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 z-10"
-                                            >
-                                                <Plus className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="start" className="w-56">
-                                            <DropdownMenuLabel>Assign Team Member</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            <div className="p-2">
-                                                <Input
-                                                    placeholder="Search members..."
-                                                    className="mb-2"
-                                                    value={assigneeInput}
-                                                    onChange={(e) => setAssigneeInput(e.target.value)}
-                                                />
-                                                <div className="max-h-60 overflow-y-auto">
-                                                    {users
-                                                        .filter(member =>
-                                                            member.username.toLowerCase().includes(assigneeInput.toLowerCase()) ||
-                                                            member.email.toLowerCase().includes(assigneeInput.toLowerCase())
-                                                        )
-                                                        .filter(member => !formData.assigned_to.some(u => u.id === member.id))
-                                                        .map(member => (
-                                                            <DropdownMenuItem
-                                                                key={member.id}
-                                                                onSelect={() => addAssignee(member)}
-                                                                className="flex items-center gap-2 p-2 cursor-pointer"
-                                                            >
-                                                                <Avatar className="h-6 w-6">
-                                                                    <AvatarFallback className="text-xs">
-                                                                        {member.username.substring(0, 2).toUpperCase()}
-                                                                    </AvatarFallback>
-                                                                </Avatar>
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-sm font-medium">{member.username}</span>
-                                                                    <span className="text-xs text-gray-500">{member.email}</span>
-                                                                </div>
-                                                            </DropdownMenuItem>
-                                                        ))}
-                                                </div>
-                                                {users.filter(member =>
-                                                    !formData.assigned_to.some(u => u.id === member.id) &&
-                                                    (member.username.toLowerCase().includes(assigneeInput.toLowerCase()) ||
-                                                        member.email.toLowerCase().includes(assigneeInput.toLowerCase()))
-                                                ).length === 0 && (
-                                                        <div className="text-center py-4 text-sm text-gray-500">
-                                                            No team members found
-                                                        </div>
-                                                    )}
-                                            </div>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                            {/* Remove button - only visible on hover */}
+                                            {hoveredAvatar === user.id && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        removeAssignee(user.id);
+                                                    }}
+                                                    className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 z-20"
+                                                    aria-label={`Remove ${user.username}`}
+                                                >
+                                                    <X size={10} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
 
-                                {formData.assigned_to.length > 0 && (
-                                    <p className="text-xs text-gray-500">
-                                        {formData.assigned_to.length} team member{formData.assigned_to.length !== 1 ? 's' : ''} assigned
-                                    </p>
-                                )}
+                                {/* Add Assignee Dropdown */}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 z-10"
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start" className="w-56">
+                                        <DropdownMenuLabel>Assign Team Member</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <div className="p-2">
+                                            <Input
+                                                placeholder="Search members..."
+                                                className="mb-2"
+                                                value={assigneeInput}
+                                                onChange={(e) => setAssigneeInput(e.target.value)}
+                                            />
+                                            <div className="max-h-60 overflow-y-auto">
+                                                {users
+                                                    .filter(member =>
+                                                        member.username.toLowerCase().includes(assigneeInput.toLowerCase()) ||
+                                                        member.email.toLowerCase().includes(assigneeInput.toLowerCase())
+                                                    )
+                                                    .filter(member => !formData.assigned_to.some(u => u.id === member.id))
+                                                    .map(member => (
+                                                        <DropdownMenuItem
+                                                            key={member.id}
+                                                            onSelect={() => addAssignee(member)}
+                                                            className="flex items-center gap-2 p-2 cursor-pointer"
+                                                        >
+                                                            <Avatar className="h-6 w-6">
+                                                                <AvatarFallback className="text-xs">
+                                                                    {member.username.substring(0, 2).toUpperCase()}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-medium">{member.username}</span>
+                                                                <span className="text-xs text-gray-500">{member.email}</span>
+                                                            </div>
+                                                        </DropdownMenuItem>
+                                                    ))}
+                                            </div>
+                                            {users.filter(member =>
+                                                !formData.assigned_to.some(u => u.id === member.id) &&
+                                                (member.username.toLowerCase().includes(assigneeInput.toLowerCase()) ||
+                                                    member.email.toLowerCase().includes(assigneeInput.toLowerCase()))
+                                            ).length === 0 && (
+                                                    <div className="text-center py-4 text-sm text-gray-500">
+                                                        No team members found
+                                                    </div>
+                                                )}
+                                        </div>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
+
+                            {formData.assigned_to.length > 0 && (
+                                <p className="text-xs text-gray-500">
+                                    {formData.assigned_to.length} team member{formData.assigned_to.length !== 1 ? 's' : ''} assigned
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -449,17 +423,16 @@ export function WorkItemForm({
                             variant="outline"
                             onClick={() => onOpenChange(false)}
                             className="flex-1 sm:flex-none"
-                            disabled={isSubmitting}
+                            disabled={loading}
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleSubmit}
-                            disabled={!formData.title || !formData.status || !formData.priority || !formData.due_date || !formData.project.id || isSubmitting}
+                            disabled={!formData.title || !formData.status || !formData.priority || !formData.due_date || loading}
                             className="flex-1 sm:flex-none"
                         >
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {mode === "add" ? "Create Work Item" : "Save Changes"}
+                            {loading ? "Saving..." : mode === "add" ? "Create Work Item" : "Save Changes"}
                         </Button>
                     </div>
                 </DialogFooter>

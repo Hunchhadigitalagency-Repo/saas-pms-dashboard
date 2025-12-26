@@ -36,16 +36,16 @@ export function NavPlatform({
   const { isMobile } = useSidebar()
 
   return (
-    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+    <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
 
       <SidebarMenu>
         {platforms.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild tooltip={item.name}>
               <Link to={item.url}>
                 <item.icon />
-                <span>{item.name}</span>
+                <span className="text-xs font-medium">{item.name}</span>
               </Link>
             </SidebarMenuButton>
             <DropdownMenu>

@@ -82,41 +82,36 @@ export function WorkItemListSkeleton() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border">
-                                    <th className="text-left p-4 text-xs w-[38%] text-gray-700">
+                                    <th className="text-left p-4 text-[11px] w-[60%] text-gray-700">
                                         <div className="flex font-medium items-center gap-2">
                                             Work Item Name
                                         </div>
                                     </th>
-                                    <th className="text-left p-4 text-xs text-gray-700">
+                                    <th className="text-left p-4 text-[11px] text-gray-700">
                                         <div className="flex font-medium items-center gap-2">
                                             Status
                                         </div>
                                     </th>
-                                    <th className="text-left p-4 text-xs text-gray-700">
+                                    <th className="text-left p-4 text-[11px] text-gray-700">
                                         <div className="flex font-medium items-center gap-2">
                                             Priority
                                         </div>
                                     </th>
-                                    <th className="text-left p-4 text-xs text-gray-700">
+                                    <th className="text-left p-4 text-[11px] text-gray-700">
                                         <div className="flex font-medium items-center gap-2">
                                             Due Date
                                         </div>
                                     </th>
-                                    <th className="text-left p-4 text-xs text-gray-700">
+                                    <th className="text-left p-4 text-[11px] text-gray-700">
                                         <div className="flex font-medium items-center gap-2">
                                             Assigned To
                                         </div>
                                     </th>
-                                    <th className="text-left p-4 text-xs text-gray-700">
-                                        <div className="flex font-medium items-center gap-2">
-                                            Project
-                                        </div>
-                                    </th>
-                                    <th className="text-right font-normal p-4 text-xs text-gray-700">Action</th>
+                                    <th className="text-right font-normal p-4 text-[11px] text-gray-700">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {Array.from({ length: 5 }).map((_, i) => (
+                                {Array.from({ length: 10 }).map((_, i) => (
                                     <tr key={i} className="border">
                                         <td className="px-3 py-4">
                                             <Skeleton className="h-4 w-3/4" />
@@ -132,9 +127,6 @@ export function WorkItemListSkeleton() {
                                         </td>
                                         <td className="px-3 py-4">
                                             <Skeleton className="h-8 w-24" />
-                                        </td>
-                                        <td className="px-3 py-4">
-                                            <Skeleton className="h-4 w-24" />
                                         </td>
                                         <td className="px-3 py-4 text-right">
                                             <Skeleton className="h-8 w-8" />

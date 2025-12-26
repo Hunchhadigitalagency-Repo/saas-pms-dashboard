@@ -82,7 +82,7 @@ export function ProjectListSkeleton() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border">
-                                    <th className="text-left p-4 text-xs w-[40%] text-gray-700">
+                                    <th className="text-left p-4 text-xs w-[30%] text-gray-700">
                                         <div className="flex font-medium items-center gap-2">
                                             Project Name
                                         </div>

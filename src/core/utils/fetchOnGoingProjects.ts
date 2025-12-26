@@ -50,7 +50,7 @@ export async function fetchOnGoingProjects(): Promise<Project[]> {
       items: [
         {
           title: "Overview",
-          url: "#",
+          url: `/dashboard/project/${project.id}/overview`,
         },
         {
           title: "Sprints",
@@ -68,10 +68,6 @@ export async function fetchOnGoingProjects(): Promise<Project[]> {
           title: "Documents",
           url: "#",
         },
-        {
-          title: "Settings",
-          url: "#",
-        }
       ],
     }));
   } catch (error) {

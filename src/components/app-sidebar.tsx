@@ -9,6 +9,7 @@ import {
   LifeBuoy,
   Send,
   Settings,
+  Funnel,
 } from "lucide-react"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavMain } from "@/components/nav-main"
@@ -70,6 +71,11 @@ const data = {
       url: "/dashboard/",
       icon: Frame,
 
+    },
+    {
+      name: "Leads",
+      url: "/dashboard/leads",
+      icon: Funnel,
     },
     {
       name: "Projects",

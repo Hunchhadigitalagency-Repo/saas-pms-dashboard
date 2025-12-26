@@ -1,9 +1,9 @@
 
 import axios from "axios";
-import type { Project, ProjectPayload } from "./types";
+import type { Project, ProjectPayload } from "../../types/types";
 import { BASE_URL } from "@/core/api/constant";
 
-export async function updateProject(projectId: number, projectData: Partial<ProjectPayload>): Promise<Project> {
+export async function createProject(projectData: ProjectPayload): Promise<Project> {
     const domainsString = localStorage.getItem("domains");
     let baseUrl = "";
 
@@ -24,14 +24,14 @@ export async function updateProject(projectId: number, projectData: Partial<Proj
         baseUrl = BASE_URL
     }
 
-    const url = `${baseUrl}/projects/${projectId}/`;
+    const url = `${baseUrl}/projects/`;
     try {
-        const response = await axios.patch<Project>(url, projectData, {
+        const response = await axios.post<Project>(url, projectData, {
             withCredentials: true, // Include cookies with request
         });
         return response.data;
     } catch (error) {
-        console.error("Failed to update project:", error);
+        console.error("Failed to create project:", error);
         throw error;
     }
 }

@@ -4,6 +4,9 @@ export interface User {
     email: string;
     first_name: string;
     last_name: string;
+    profile?: {
+        profile_picture?: string;
+    };
 }
 
 export interface ProjectLite {

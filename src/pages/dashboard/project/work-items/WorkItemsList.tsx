@@ -5,11 +5,11 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Search, ChevronDown, Filter, MoreHorizontal, Edit, Trash2, Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Plus, Search, ChevronDown, Filter, LayoutList, KanbanSquare } from "lucide-react"
 import { fetchWorkItems } from "./work_item_services/FetchWorkItems"
+import { deleteWorkItem } from "../../work_items/work_item_services/DeleteWorkItem"
+import { updateWorkItem } from "../../work_items/work_item_services/UpdateWorkItem"
 import type { WorkItem } from "./work_item_services/FetchWorkItems"
 import {
     Breadcrumb,
@@ -23,17 +23,42 @@ import { Separator } from "@/components/ui/separator"
 import {
     SidebarTrigger,
 } from "@/components/ui/sidebar"
+import toast from "react-hot-toast"
 
 // Import the new components
 import { DeleteConfirmationDialog } from "./components/DeleteConfirmationDialog"
 import { WorkItemDetailDrawer } from "./components/WorkItemDetailDrawer"
 import { WorkItemListSkeleton } from "./components/WorkItemListSkeleton"
 import { WorkItemForm } from "./components/WorkItemForm"
+import ProjectTableView, { type SortConfigItem } from "./views/ProjectTableView"
+import ProjectKanbanView from "./views/ProjectKanbanView"
+
+const successOptions = {
+    duration: 3000,
+    style: {
+        background: '#10B981',
+        color: '#fff',
+    },
+    iconTheme: {
+        primary: '#fff',
+        secondary: '#10B981',
+    },
+};
+
+const errorOptions = {
+    duration: 4000,
+    style: {
+        background: '#EF4444',
+        color: '#fff',
+    },
+    iconTheme: {
+        primary: '#fff',
+        secondary: '#EF4444',
+    },
+};
 
 export default function WorkItemsList() {
     const { projectId } = useParams<{ projectId: string }>();
-
-    console.log('Project ID from URL params:', projectId);
 
     if (!projectId) {
         return (
@@ -50,12 +75,18 @@ export default function WorkItemsList() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [search, setSearch] = useState("")
+    const [view, setView] = useState<'list' | 'board'>('list')
+
+    // Filter states
     const [statusFilter, setStatusFilter] = useState<string>("")
     const [priorityFilter, setPriorityFilter] = useState<string>("")
     const [dueDateFilter, setDueDateFilter] = useState<string>("")
-    const [projectFilter, setProjectFilter] = useState<string>("")
-    const [sortField, setSortField] = useState<string>("")
-    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
+    // Sort and Update states
+    const [sortConfig, setSortConfig] = useState<SortConfigItem[]>([])
+    const [isDeleting, setIsDeleting] = useState(false)
+    const [updatingStatusIds, setUpdatingStatusIds] = useState<number[]>([])
+    const [updatingPriorityIds, setUpdatingPriorityIds] = useState<number[]>([])
 
     // Modal states
     const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -66,7 +97,7 @@ export default function WorkItemsList() {
     const [viewDrawerOpen, setViewDrawerOpen] = useState(false)
     const [itemToView, setItemToView] = useState<WorkItem | null>(null)
 
-    // Form state for add/edit
+    // Form state for add/edit - partially managed by WorkItemForm component now, but we init it here for openAddModal
     const [formData, setFormData] = useState<Omit<WorkItem, 'id' | 'created_at' | 'updated_at'>>({
         title: "",
         description: "",
@@ -92,117 +123,123 @@ export default function WorkItemsList() {
     }
 
     useEffect(() => {
-        console.log('Loading work items for project:', projectId)
         if (projectId) {
             loadWorkItems(projectId)
         }
     }, [projectId])
 
-    const updateWorkItemStatus = (itemId: number, newStatus: WorkItem['status']) => {
-        setWorkItems(prev =>
-            prev.map(item =>
-                item.id === itemId
-                    ? { ...item, status: newStatus }
-                    : item
-            )
-        )
-    }
+    // Optimistic Update Handlers
+    const updateWorkItemStatus = async (itemId: number, newStatus: WorkItem['status']) => {
+        const prevWorkItems = [...workItems];
+        setUpdatingStatusIds(prev => [...prev, itemId])
 
-    const updateWorkItemPriority = (itemId: number, newPriority: WorkItem['priority']) => {
-        setWorkItems(prev =>
-            prev.map(item =>
-                item.id === itemId
-                    ? { ...item, priority: newPriority }
-                    : item
-            )
-        )
-    }
+        // Optimistic update
+        setWorkItems(prev => prev.map(item =>
+            item.id === itemId ? { ...item, status: newStatus } : item
+        ));
+
+        try {
+            await updateWorkItem(String(itemId), { status: newStatus });
+            const item = prevWorkItems.find(i => i.id === itemId);
+            toast.success(
+                `Status for "${item?.title}" updated to ${newStatus.replace('_', ' ')}`,
+                successOptions
+            );
+        } catch (error) {
+            console.error(`Failed to update status for item ${itemId}:`, error);
+            setWorkItems(prevWorkItems);
+            toast.error("Failed to update status", errorOptions);
+        } finally {
+            setUpdatingStatusIds(prev => prev.filter(id => id !== itemId))
+        }
+    };
+
+    const updateWorkItemPriority = async (itemId: number, newPriority: WorkItem['priority']) => {
+        const prevWorkItems = [...workItems];
+        setUpdatingPriorityIds(prev => [...prev, itemId])
+
+        // Optimistic update
+        setWorkItems(prev => prev.map(item =>
+            item.id === itemId ? { ...item, priority: newPriority } : item
+        ));
+
+        try {
+            await updateWorkItem(String(itemId), { priority: newPriority });
+            const item = prevWorkItems.find(i => i.id === itemId);
+            toast.success(
+                `Priority for "${item?.title}" updated to ${newPriority}`,
+                successOptions
+            );
+        } catch (error) {
+            console.error(`Failed to update priority for item ${itemId}:`, error);
+            setWorkItems(prevWorkItems);
+            toast.error("Failed to update priority", errorOptions);
+        } finally {
+            setUpdatingPriorityIds(prev => prev.filter(id => id !== itemId))
+        }
+    };
 
     const handleSort = (field: string) => {
-        if (sortField === field) {
-            setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-        } else {
-            setSortField(field)
-            setSortDirection("asc")
-        }
-    }
+        setSortConfig((prevConfig) => {
+            const existingIndex = prevConfig.findIndex((item) => item.field === field);
+            const newConfig = [...prevConfig];
 
-    const getSortIcon = (field: string) => {
-        if (sortField !== field) return <ArrowUpDown size={14} className="opacity-50" />
-        return sortDirection === "asc" ?
-            <ArrowUp size={14} className="text-blue-600" /> :
-            <ArrowDown size={14} className="text-blue-600" />
-    }
+            if (existingIndex > -1) {
+                // Cycle: asc -> desc -> remove
+                const currentDirection = newConfig[existingIndex].direction;
+                if (currentDirection === "asc") {
+                    newConfig[existingIndex].direction = "desc";
+                } else {
+                    newConfig.splice(existingIndex, 1);
+                }
+            } else {
+                // Add new sort field
+                newConfig.push({ field, direction: "asc" });
+            }
+            return newConfig;
+        });
+    };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case "pending": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-            case "in_progress": return "bg-blue-100 text-blue-800 hover:bg-blue-200"
-            case "completed": return "bg-green-100 text-green-800 hover:bg-green-200"
-            default: return "bg-gray-100 text-gray-800 hover:bg-gray-200"
-        }
-    }
-
-    const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case "high": return "bg-red-100 text-red-800 hover:bg-red-200"
-            case "medium": return "bg-orange-100 text-orange-800 hover:bg-orange-200"
-            case "low": return "bg-gray-100 text-gray-800 hover:bg-gray-200"
-            default: return "bg-gray-100 text-gray-800 hover:bg-gray-200"
-        }
-    }
-
+    // Filter Logic
     const filteredWorkItems = workItems.filter((item) => {
         return (
             item.title.toLowerCase().includes(search.toLowerCase()) &&
             (statusFilter ? item.status === statusFilter : true) &&
             (priorityFilter ? item.priority === priorityFilter : true) &&
-            (dueDateFilter ? item.due_date === dueDateFilter : true) &&
-            (projectFilter ? item.project.name === projectFilter : true)
+            (dueDateFilter ? item.due_date === dueDateFilter : true)
         )
     })
 
+    // Sort Logic
     const sortedWorkItems = [...filteredWorkItems].sort((a, b) => {
-        if (!sortField) return 0
+        for (const { field, direction } of sortConfig) {
+            let aValue: any = a[field as keyof WorkItem];
+            let bValue: any = b[field as keyof WorkItem];
 
-        let aValue: any = a[sortField as keyof WorkItem]
-        let bValue: any = b[sortField as keyof WorkItem]
-
-        switch (sortField) {
-            case "title":
-                aValue = a.title.toLowerCase()
-                bValue = b.title.toLowerCase()
-                break
-            case "status":
-                const statusOrder = { "pending": 1, "in_progress": 2, "completed": 3 }
-                aValue = statusOrder[a.status as keyof typeof statusOrder] || 0
-                bValue = statusOrder[b.status as keyof typeof statusOrder] || 0
-                break
-            case "priority":
-                const priorityOrder = { "high": 3, "medium": 2, "low": 1 }
-                aValue = priorityOrder[a.priority as keyof typeof priorityOrder] || 0
-                bValue = priorityOrder[b.priority as keyof typeof priorityOrder] || 0
-                break
-            case "due_date":
-                aValue = new Date(a.due_date).getTime()
-                bValue = new Date(b.due_date).getTime()
-                break
-            case "assigned_to":
+            if (field === "status") {
+                const statusOrder = { "pending": 1, "in_progress": 2, "completed": 3 };
+                aValue = statusOrder[a.status as keyof typeof statusOrder] || 0;
+                bValue = statusOrder[b.status as keyof typeof statusOrder] || 0;
+            } else if (field === "priority") {
+                const priorityOrder = { "high": 3, "medium": 2, "low": 1 };
+                aValue = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+                bValue = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+            } else if (field === "due_date") {
+                aValue = new Date(a.due_date).getTime();
+                bValue = new Date(b.due_date).getTime();
+            } else if (field === "assigned_to") {
                 aValue = a.assigned_to.map(u => u.username).join(", ").toLowerCase()
                 bValue = b.assigned_to.map(u => u.username).join(", ").toLowerCase()
-                break
-            case "project":
-                aValue = a.project.name.toLowerCase()
-                bValue = b.project.name.toLowerCase()
-                break
-            default:
-                return 0
-        }
+            } else if (typeof aValue === 'string') {
+                aValue = aValue.toLowerCase();
+                bValue = bValue.toLowerCase();
+            }
 
-        if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
-        if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
-        return 0
-    })
+            if (aValue < bValue) return direction === "asc" ? -1 : 1;
+            if (aValue > bValue) return direction === "asc" ? 1 : -1;
+        }
+        return 0;
+    });
 
     // Delete item functions
     const openDeleteModal = (itemId: number) => {
@@ -210,11 +247,25 @@ export default function WorkItemsList() {
         setDeleteModalOpen(true)
     }
 
-    const handleDelete = () => {
-        if (itemToDelete) {
-            setWorkItems(workItems.filter(item => item.id !== itemToDelete))
-            setDeleteModalOpen(false)
-            setItemToDelete(null)
+    const handleDelete = async () => {
+        if (!itemToDelete) return;
+
+        setIsDeleting(true);
+        const prevWorkItems = [...workItems];
+        // Optimistic delete
+        setWorkItems(prev => prev.filter(item => item.id !== itemToDelete));
+        setDeleteModalOpen(false);
+
+        try {
+            await deleteWorkItem(itemToDelete);
+            toast.success("Work Item deleted successfully", successOptions);
+        } catch (error) {
+            console.error("Failed to delete work item:", error);
+            setWorkItems(prevWorkItems);
+            toast.error("Failed to delete work item", errorOptions);
+        } finally {
+            setIsDeleting(false);
+            setItemToDelete(null);
         }
     }
 
@@ -248,10 +299,14 @@ export default function WorkItemsList() {
         setFormOpen(true);
     };
 
-    const handleFormSubmitSuccess = () => {
+    const handleFormSubmitSuccess = (savedItem: WorkItem) => {
         setFormOpen(false);
-        if (projectId) {
-            loadWorkItems(projectId)
+        if (formMode === 'add') {
+            setWorkItems(prev => [savedItem, ...prev]);
+            toast.success("Work Item created successfully", successOptions);
+        } else {
+            setWorkItems(prev => prev.map(item => item.id === savedItem.id ? savedItem : item));
+            toast.success("Work Item updated successfully", successOptions);
         }
     };
 
@@ -259,10 +314,6 @@ export default function WorkItemsList() {
     const openViewDrawer = (item: WorkItem) => {
         setItemToView(item)
         setViewDrawerOpen(true)
-    }
-
-    const formatChoice = (choice: string) => {
-        return choice.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
 
     if (loading) {
@@ -278,36 +329,32 @@ export default function WorkItemsList() {
     }
 
     return (
-        <div className="space-y-6">
-            {/* Delete Confirmation Modal */}
+        <div className="space-y-6 px-6">
             <DeleteConfirmationDialog
                 open={deleteModalOpen}
                 onOpenChange={setDeleteModalOpen}
                 onConfirm={handleDelete}
             />
 
-            {/* Add/Edit Work Item Modal */}
             <WorkItemForm
                 open={formOpen}
                 onOpenChange={setFormOpen}
-                onSubmitSuccess={handleFormSubmitSuccess}
+                onSubmitSuccess={handleFormSubmitSuccess} // Now accepts the item
                 formData={formData}
                 setFormData={setFormData}
                 mode={formMode}
                 workItemId={editWorkItemId}
             />
 
-            {/* View Work Item Drawer */}
             <WorkItemDetailDrawer
                 open={viewDrawerOpen}
                 onOpenChange={setViewDrawerOpen}
                 item={itemToView}
             />
 
-            {/* Main Content */}
-            <Card className="shadow-none border-none p-0">
-                <CardContent>
-                    {/* Search & Filters */}
+            <Card className="shadow-none border-none p-0 bg-transparent">
+                <CardContent className="p-0">
+                    {/* Header & Controls */}
                     <div className="flex justify-between gap-4">
                         <div className="flex items-center gap-2">
                             <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -340,6 +387,22 @@ export default function WorkItemsList() {
                             </header>
                         </div>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                            {/* View Toggles */}
+                            <div className="flex bg-gray-100 rounded-lg p-1 mr-2">
+                                <button
+                                    onClick={() => setView('list')}
+                                    className={`p-1.5 rounded-md transition-all ${view === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    <LayoutList size={16} />
+                                </button>
+                                <button
+                                    onClick={() => setView('board')}
+                                    className={`p-1.5 rounded-md transition-all ${view === 'board' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    <KanbanSquare size={16} />
+                                </button>
+                            </div>
+
                             <div className="relative">
                                 <Search className="absolute left-2 top-2.5 h-3 w-3 text-gray-400" />
                                 <Input
@@ -354,9 +417,9 @@ export default function WorkItemsList() {
                                     <Button variant="outline" className="gap-2 h-8 rounded-md text-xs font-normal whitespace-nowrap">
                                         <Filter size={16} />
                                         Filters
-                                        {(statusFilter || priorityFilter || dueDateFilter || projectFilter) && (
+                                        {(statusFilter || priorityFilter || dueDateFilter) && (
                                             <Badge variant="secondary" className="ml-1 text-xs">
-                                                {[statusFilter, priorityFilter, dueDateFilter, projectFilter].filter(Boolean).length}
+                                                {[statusFilter, priorityFilter, dueDateFilter].filter(Boolean).length}
                                             </Badge>
                                         )}
                                         <ChevronDown size={16} />
@@ -412,7 +475,6 @@ export default function WorkItemsList() {
                                                     setStatusFilter("")
                                                     setPriorityFilter("")
                                                     setDueDateFilter("")
-                                                    setProjectFilter("")
                                                 }}
                                                 className="flex-1"
                                             >
@@ -433,191 +495,32 @@ export default function WorkItemsList() {
                         </div>
                     </div>
 
-                    {/* Data Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border">
-                                    <th className="text-left p-4 text-xs w-[50%] text-gray-700">
-                                        <button
-                                            onClick={() => handleSort("title")}
-                                            className="flex font-medium items-center gap-2 hover:text-blue-600 transition-colors"
-                                        >
-                                            Work Item Name
-                                            {getSortIcon("title")}
-                                        </button>
-                                    </th>
-                                    <th className="text-left p-4 text-xs text-gray-700">
-                                        <button
-                                            onClick={() => handleSort("status")}
-                                            className="flex font-medium items-center gap-2 hover:text-blue-600 transition-colors"
-                                        >
-                                            Status
-                                            {getSortIcon("status")}
-                                        </button>
-                                    </th>
-                                    <th className="text-left p-4 text-xs text-gray-700">
-                                        <button
-                                            onClick={() => handleSort("priority")}
-                                            className="flex font-medium items-center gap-2 hover:text-blue-600 transition-colors"
-                                        >
-                                            Priority
-                                            {getSortIcon("priority")}
-                                        </button>
-                                    </th>
-                                    <th className="text-left p-4 text-xs text-gray-700">
-                                        <button
-                                            onClick={() => handleSort("due_date")}
-                                            className="flex font-medium items-center gap-2 hover:text-blue-600 transition-colors"
-                                        >
-                                            Due Date
-                                            {getSortIcon("due_date")}
-                                        </button>
-                                    </th>
-                                    <th className="text-left p-4 text-xs text-gray-700">
-                                        <button
-                                            onClick={() => handleSort("assigned_to")}
-                                            className="flex font-medium items-center gap-2 hover:text-blue-600 transition-colors"
-                                        >
-                                            Assigned To
-                                            {getSortIcon("assigned_to")}
-                                        </button>
-                                    </th>
-                                    <th className="text-right p-4 text-xs text-gray-700">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sortedWorkItems.map((item) => (
-                                    <tr key={item.id} className="border hover:bg-gray-50">
-                                        <td className="px-3 py-1 text-xs"><span className="font-medium">{item.title}</span> </td>
-                                        <td className="px-3 py-1">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="p-0 h-auto">
-                                                        <span
-                                                            className={`cursor-pointer hover:opacity-80 flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${getStatusColor(item.status)}`}
-                                                        >
-                                                            {formatChoice(item.status)}
-                                                            <ChevronDown size={12} />
-                                                        </span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => updateWorkItemStatus(item.id, "pending")}>
-                                                        Pending
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => updateWorkItemStatus(item.id, "in_progress")}>
-                                                        In Progress
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => updateWorkItemStatus(item.id, "completed")}>
-                                                        Completed
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </td>
-                                        <td className="px-3 py-1">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="p-0 h-auto">
-                                                        <span
-                                                            className={`cursor-pointer hover:opacity-80 flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${getPriorityColor(item.priority)}`}
-                                                        >
-                                                            {formatChoice(item.priority)}
-                                                            <ChevronDown size={12} />
-                                                        </span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => updateWorkItemPriority(item.id, "high")}>
-                                                        High
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => updateWorkItemPriority(item.id, "medium")}>
-                                                        Medium
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => updateWorkItemPriority(item.id, "low")}>
-                                                        Low
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </td>
-                                        <td className="px-3 py-1 text-xs">
-                                            {new Date(item.due_date).toLocaleDateString('en-US', {
-                                                month: 'short',
-                                                day: 'numeric',
-                                                year: 'numeric'
-                                            })}
-                                        </td>
-                                        <td className="px-3 py-1">
-                                            <div className="flex items-center">
-                                                {item.assigned_to.length > 0 ? (
-                                                    <div className="flex -space-x-2">
-                                                        {item.assigned_to.map((user) => (
-                                                            <TooltipProvider key={user.id}>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <div className="relative hover:z-10 transition-transform hover:scale-110">
-                                                                            <Avatar className="w-4 h-4 p-3 border-2 border-white bg-black">
-                                                                                <AvatarFallback className="text-xs text-white bg-slate-400/10">
-                                                                                    {user.username.charAt(0).toUpperCase()}
-                                                                                </AvatarFallback>
-                                                                            </Avatar>
-                                                                        </div>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent side="top">
-                                                                        <p className="font-xs p-3 bg-gray-100/90">{user.username}</p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-xs text-gray-500">-</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-3 py-1 text-right text-xs">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                        <MoreHorizontal size={16} />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem
-                                                        className="flex items-center text-sm gap-2"
-                                                        onClick={() => openViewDrawer(item)}
-                                                    >
-                                                        <Eye size={16} />
-                                                        View
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        className="flex items-center text-xs gap-2"
-                                                        onClick={() => openEditModal(item)}
-                                                    >
-                                                        <Edit size={16} />
-                                                        Edit
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        className="flex items-center text-xs gap-2"
-                                                        onClick={() => openDeleteModal(item.id)}
-                                                    >
-                                                        <Trash2 size={16} />
-                                                        Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {sortedWorkItems.length === 0 && (
-                                    <tr>
-                                        <td colSpan={7} className="text-center text-gray-500 py-6">
-                                            No work items found
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                    {/* Views Render */}
+                    <div>
+                        {view === 'list' ? (
+                            <ProjectTableView
+                                workItems={sortedWorkItems}
+                                updatingStatusIds={updatingStatusIds}
+                                updatingPriorityIds={updatingPriorityIds}
+                                sortConfig={sortConfig}
+                                handleSort={handleSort}
+                                openViewDrawer={openViewDrawer}
+                                openEditModal={openEditModal}
+                                openDeleteModal={openDeleteModal}
+                                updateWorkItemStatus={updateWorkItemStatus}
+                                updateWorkItemPriority={updateWorkItemPriority}
+                            />
+                        ) : (
+                            <div>
+                                <ProjectKanbanView
+                                    workItems={sortedWorkItems}
+                                    updateWorkItemStatus={updateWorkItemStatus}
+                                    openViewDrawer={openViewDrawer}
+                                    openEditModal={openEditModal}
+                                    openDeleteModal={openDeleteModal}
+                                />
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
