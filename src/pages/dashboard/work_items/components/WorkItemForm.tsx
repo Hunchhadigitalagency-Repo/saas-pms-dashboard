@@ -86,7 +86,7 @@ export function WorkItemForm({
         if (open) {
             fetchData()
         }
-    }, [open, onSubmitSuccess])
+    }, [open])
 
     const addAssignee = (user: User) => {
         if (!formData.assigned_to.some(u => u.id === user.id)) {
