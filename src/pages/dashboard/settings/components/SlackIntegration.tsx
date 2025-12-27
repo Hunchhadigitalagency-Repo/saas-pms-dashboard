@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Slack, Check, AlertCircle, ExternalLink } from "lucide-react"
 import toast from "react-hot-toast"
 import { successOptions, errorOptions } from "@/core/utils/toast-styles"
+import { slackService, type SlackConnectionStatus } from "../services/SlackService"
 
 const SLACK_OAUTH_SCOPES = [
     'channels:read',
@@ -28,21 +29,16 @@ const SLACK_SCOPE_DESCRIPTIONS = {
     'groups:read': 'View basic information about private channels that "collabrix-integration" has been added to'
 }
 
-interface SlackConnectionStatus {
-    is_connected: boolean
-    team_name?: string
-    team_id?: string
-}
-
 export function SlackIntegration() {
     const [isConnected, setIsConnected] = useState(false)
     const [connectionData, setConnectionData] = useState<SlackConnectionStatus | null>(null)
     const [loading, setLoading] = useState(false)
     const [showTokenDialog, setShowTokenDialog] = useState(false)
     const [slackToken, setSlackToken] = useState("")
-    const [teamId, setTeamId] = useState("")
     const [tokenLoading, setTokenLoading] = useState(false)
     const [showScopes, setShowScopes] = useState(false)
+    const [verifyingToken, setVerifyingToken] = useState(false)
+    const [teamInfo, setTeamInfo] = useState<{ team_id: string, team_name: string } | null>(null)
 
     // Check initial connection status
     useEffect(() => {
@@ -52,19 +48,10 @@ export function SlackIntegration() {
     const checkSlackConnection = async () => {
         setLoading(true)
         try {
-            const response = await fetch('/api/v1/slack/check_connection/', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                },
-            })
-
-            if (response.ok) {
-                const data = await response.json()
-                if (data.is_connected) {
-                    setIsConnected(true)
-                    setConnectionData(data)
-                }
+            const data = await slackService.checkConnection()
+            if (data.is_connected) {
+                setIsConnected(true)
+                setConnectionData(data)
             }
         } catch (error) {
             console.error("Error checking Slack connection:", error)
@@ -76,43 +63,61 @@ export function SlackIntegration() {
     const handleConnectClick = () => {
         setShowTokenDialog(true)
         setShowScopes(true)
+        setTeamInfo(null)
+    }
+
+    const verifySlackToken = async () => {
+        if (!slackToken.trim()) {
+            toast.error("Please enter a bot token", errorOptions)
+            return
+        }
+
+        setVerifyingToken(true)
+        setTeamInfo(null)
+
+        try {
+            const data = await slackService.verifyToken(slackToken)
+
+            if (data.ok && data.team_id && data.team) {
+                setTeamInfo({
+                    team_id: data.team_id,
+                    team_name: data.team
+                })
+                toast.success(`Token verified! Workspace: ${data.team}`, successOptions)
+            } else {
+                toast.error(data.error || "Invalid Slack token. Please check and try again.", errorOptions)
+            }
+        } catch (error) {
+            console.error("Error verifying token:", error)
+            toast.error("Failed to verify token. Please check your internet connection.", errorOptions)
+        } finally {
+            setVerifyingToken(false)
+        }
     }
 
     const handleAddToken = async () => {
-        if (!slackToken.trim() || !teamId.trim()) {
-            toast.error("Please enter both token and team ID", errorOptions)
+        if (!slackToken.trim()) {
+            toast.error("Please enter a bot token", errorOptions)
+            return
+        }
+
+        if (!teamInfo) {
+            toast.error("Please verify your token first", errorOptions)
             return
         }
 
         setTokenLoading(true)
         try {
-            const response = await fetch('/api/v1/slack/add_token/', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    slack_token: slackToken,
-                    team_id: teamId,
-                })
-            })
-
-            if (response.ok) {
-                const data = await response.json()
-                setIsConnected(true)
-                setConnectionData(data)
-                setShowTokenDialog(false)
-                setSlackToken("")
-                setTeamId("")
-                toast.success("Slack connected successfully!", successOptions)
-            } else {
-                const error = await response.json()
-                toast.error(error.error || "Failed to add Slack token", errorOptions)
-            }
-        } catch (error) {
+            const data = await slackService.addToken(slackToken, teamInfo.team_id)
+            setIsConnected(true)
+            setConnectionData(data)
+            setShowTokenDialog(false)
+            setSlackToken("")
+            setTeamInfo(null)
+            toast.success("Slack connected successfully!", successOptions)
+        } catch (error: any) {
             console.error("Error adding token:", error)
-            toast.error("An error occurred while connecting Slack", errorOptions)
+            toast.error(error.message || "An error occurred while connecting Slack", errorOptions)
         } finally {
             setTokenLoading(false)
         }
@@ -125,24 +130,13 @@ export function SlackIntegration() {
 
         setLoading(true)
         try {
-            const response = await fetch('/api/v1/slack/disconnect/', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                },
-            })
-
-            if (response.ok) {
-                setIsConnected(false)
-                setConnectionData(null)
-                toast.success("Slack disconnected successfully", successOptions)
-            } else {
-                const error = await response.json()
-                toast.error(error.error || "Failed to disconnect Slack", errorOptions)
-            }
-        } catch (error) {
+            await slackService.disconnect()
+            setIsConnected(false)
+            setConnectionData(null)
+            toast.success("Slack disconnected successfully", successOptions)
+        } catch (error: any) {
             console.error("Error disconnecting:", error)
-            toast.error("An error occurred while disconnecting Slack", errorOptions)
+            toast.error(error.message || "An error occurred while disconnecting Slack", errorOptions)
         } finally {
             setLoading(false)
         }
@@ -213,7 +207,7 @@ export function SlackIntegration() {
                     <DialogHeader>
                         <DialogTitle>Connect Slack Workspace</DialogTitle>
                         <DialogDescription>
-                            Enter your Slack authentication token and team ID to connect
+                            Enter your Slack bot token to connect your workspace
                         </DialogDescription>
                     </DialogHeader>
 
@@ -257,14 +251,29 @@ export function SlackIntegration() {
                         {/* Token Input */}
                         <div className="space-y-2">
                             <Label htmlFor="slack-token">Slack Bot Token</Label>
-                            <Input
-                                id="slack-token"
-                                type="password"
-                                placeholder="xoxb-your-token-here"
-                                value={slackToken}
-                                onChange={(e) => setSlackToken(e.target.value)}
-                                disabled={tokenLoading}
-                            />
+                            <div className="flex gap-2">
+                                <Input
+                                    id="slack-token"
+                                    type="password"
+                                    placeholder="xoxb-your-token-here"
+                                    value={slackToken}
+                                    onChange={(e) => setSlackToken(e.target.value)}
+                                    disabled={tokenLoading || verifyingToken}
+                                    className="flex-1"
+                                />
+                                <Button
+                                    onClick={verifySlackToken}
+                                    disabled={!slackToken.trim() || verifyingToken || tokenLoading}
+                                    variant="outline"
+                                    size="default"
+                                >
+                                    {verifyingToken ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        "Verify"
+                                    )}
+                                </Button>
+                            </div>
                             <p className="text-xs text-muted-foreground">
                                 Create a Slack app at{" "}
                                 <a
@@ -279,33 +288,35 @@ export function SlackIntegration() {
                             </p>
                         </div>
 
-                        {/* Team ID Input */}
-                        <div className="space-y-2">
-                            <Label htmlFor="team-id">Team ID</Label>
-                            <Input
-                                id="team-id"
-                                placeholder="T01234ABCD"
-                                value={teamId}
-                                onChange={(e) => setTeamId(e.target.value)}
-                                disabled={tokenLoading}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                Find your Team ID in Slack workspace settings
-                            </p>
-                        </div>
+                        {/* Team Info Display */}
+                        {teamInfo && (
+                            <Alert className="border-green-200 bg-green-50">
+                                <Check className="h-4 w-4 text-green-600" />
+                                <AlertDescription className="text-green-800">
+                                    <div className="space-y-1">
+                                        <div><strong>Workspace:</strong> {teamInfo.team_name}</div>
+                                        <div className="text-xs"><strong>Team ID:</strong> {teamInfo.team_id}</div>
+                                    </div>
+                                </AlertDescription>
+                            </Alert>
+                        )}
                     </div>
 
                     <DialogFooter>
                         <Button
                             variant="outline"
-                            onClick={() => setShowTokenDialog(false)}
+                            onClick={() => {
+                                setShowTokenDialog(false)
+                                setTeamInfo(null)
+                                setSlackToken("")
+                            }}
                             disabled={tokenLoading}
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleAddToken}
-                            disabled={tokenLoading || !slackToken.trim() || !teamId.trim()}
+                            disabled={tokenLoading || !teamInfo}
                         >
                             {tokenLoading ? (
                                 <>
