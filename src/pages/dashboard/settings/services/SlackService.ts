@@ -1,3 +1,6 @@
+import axios from 'axios'
+import { BASE_URL } from '@/core/api/constant'
+
 interface SlackAuthTestResponse {
     ok: boolean
     team_id?: string
@@ -11,85 +14,104 @@ interface SlackConnectionStatus {
     team_id?: string
 }
 
-const getAuthHeaders = () => ({
-    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-})
+const getBaseUrl = () => {
+    const domainsString = localStorage.getItem('domains')
+    if (domainsString) {
+        try {
+            const domains = JSON.parse(domainsString)
+            const primaryDomain = domains?.domain || domains?.[0]?.domain
+            if (primaryDomain) {
+                return `https://${primaryDomain}/api/v1`
+            }
+        } catch (error) {
+            console.error('Error parsing domains:', error)
+        }
+    }
+    // Fallback to BASE_URL constant
+    return BASE_URL
+}
 
 export const slackService = {
     /**
-     * Check if Slack is connected for the current client
+     * Check if Slack is connected for the current tenant
      */
     async checkConnection(): Promise<SlackConnectionStatus> {
-        const response = await fetch('/api/v1/slack/check_connection/', {
-            method: 'GET',
-            headers: getAuthHeaders(),
-        })
-
-        if (!response.ok) {
-            throw new Error('Failed to check Slack connection')
+        const baseUrl = getBaseUrl()
+        try {
+            const response = await axios.get(`${baseUrl}/slack/check_connection/`, {
+                withCredentials: true,
+            })
+            return response.data
+        } catch (error) {
+            console.error('Failed to check Slack connection:', error)
+            throw error
         }
-
-        return await response.json()
     },
 
     /**
-     * Verify Slack token with Slack API and get team info
+     * Verify Slack token with backend API
+     * Backend will verify with Slack and return team info
      */
     async verifyToken(token: string): Promise<SlackAuthTestResponse> {
-        const response = await fetch('https://slack.com/api/auth.test', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-        })
-
-        if (!response.ok) {
-            throw new Error('Failed to verify Slack token')
+        const baseUrl = getBaseUrl()
+        try {
+            const response = await axios.post(
+                `${baseUrl}/slack/verify_token/`,
+                {
+                    slack_token: token,
+                },
+                {
+                    withCredentials: true,
+                }
+            )
+            return response.data
+        } catch (error) {
+            console.error('Failed to verify Slack token:', error)
+            throw error
         }
-
-        return await response.json()
     },
 
     /**
      * Add Slack token and team ID to the backend
      */
     async addToken(slackToken: string, teamId: string): Promise<SlackConnectionStatus> {
-        const response = await fetch('/api/v1/slack/add_token/', {
-            method: 'POST',
-            headers: {
-                ...getAuthHeaders(),
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                slack_token: slackToken,
-                team_id: teamId,
-            })
-        })
-
-        if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.error || 'Failed to add Slack token')
+        const baseUrl = getBaseUrl()
+        try {
+            const response = await axios.post(
+                `${baseUrl}/slack/add_token/`,
+                {
+                    slack_token: slackToken,
+                    team_id: teamId,
+                },
+                {
+                    withCredentials: true,
+                }
+            )
+            return response.data
+        } catch (error) {
+            console.error('Failed to add Slack token:', error)
+            throw error
         }
-
-        return await response.json()
     },
 
     /**
      * Disconnect Slack integration
      */
     async disconnect(): Promise<{ message: string }> {
-        const response = await fetch('/api/v1/slack/disconnect/', {
-            method: 'POST',
-            headers: getAuthHeaders(),
-        })
-
-        if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.error || 'Failed to disconnect Slack')
+        const baseUrl = getBaseUrl()
+        try {
+            const response = await axios.post(
+                `${baseUrl}/slack/disconnect/`,
+                {},
+                {
+                    withCredentials: true,
+                }
+            )
+            return response.data
+        } catch (error) {
+            console.error('Failed to disconnect Slack:', error)
+            throw error
         }
-
-        return await response.json()
     }
 }
 

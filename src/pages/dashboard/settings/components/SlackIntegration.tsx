@@ -87,9 +87,9 @@ export function SlackIntegration() {
             } else {
                 toast.error(data.error || "Invalid Slack token. Please check and try again.", errorOptions)
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error verifying token:", error)
-            toast.error("Failed to verify token. Please check your internet connection.", errorOptions)
+            toast.error(error.message || "Failed to verify token. Please check your internet connection.", errorOptions)
         } finally {
             setVerifyingToken(false)
         }
