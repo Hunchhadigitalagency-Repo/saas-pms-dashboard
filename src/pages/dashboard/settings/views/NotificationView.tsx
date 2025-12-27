@@ -1,4 +1,5 @@
 import React from "react"
+import { SlackIntegration } from "../components/SlackIntegration"
 
 const NotificationView: React.FC = () => {
     const prefs = [
@@ -8,7 +9,7 @@ const NotificationView: React.FC = () => {
     ]
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <div>
                 <h3 className="text-lg font-semibold">Notifications</h3>
                 <p className="text-sm text-muted-foreground">Choose how you want to be notified.</p>
@@ -24,8 +25,14 @@ const NotificationView: React.FC = () => {
                     </label>
                 ))}
             </div>
+
+            {/* Slack Integration */}
+            <div>
+                <SlackIntegration />
+            </div>
         </div>
     )
 }
 
 export default NotificationView
+

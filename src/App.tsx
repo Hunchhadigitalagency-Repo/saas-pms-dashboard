@@ -16,6 +16,7 @@ import WorkItemsList from './pages/dashboard/work_items/WorkItems';
 import ProjectWorkItemsList from './pages/dashboard/project/work-items/WorkItemsList';
 import ProjectOverview from './pages/dashboard/project/overview/index';
 import SettingsPage from './pages/dashboard/settings';
+import AccountPage from './pages/dashboard/account';
 
 function App() {
 
@@ -47,6 +48,7 @@ function App() {
           <Route path="work-items" element={<WorkItemsList />} />
           <Route path="project/:projectId/work-items" element={<ProjectWorkItemsList />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="account" element={<AccountPage />} />
         </Route>
         {/* Default redirect */}
         <Route path="*" element={<LoginPage />} />

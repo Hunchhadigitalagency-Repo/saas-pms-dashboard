@@ -117,7 +117,7 @@ export function NavUser({
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/account")}>
                   <BadgeCheck className="mr-2 h-4 w-4" />
                   <span>Account</span>
                 </DropdownMenuItem>
