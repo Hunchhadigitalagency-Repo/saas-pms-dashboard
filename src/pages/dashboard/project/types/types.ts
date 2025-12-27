@@ -30,6 +30,11 @@ export interface Project {
 // inherit the project and make a copy with name projectdetails
 export type ProjectDetails = Project;
 
+export interface TeamMemberPayload {
+    user: number;
+    role: string;
+}
+
 export interface ProjectPayload extends Omit<Project, 'id' | 'created_at' | 'updated_at' | 'team_members'> {
-    team_members: number[];
+    team_members: TeamMemberPayload[] | number[]; // Support both new and old format
 }

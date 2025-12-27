@@ -46,6 +46,10 @@ export default function ProjectOverview() {
         }
     };
 
+    const handleProjectUpdate = (updatedProject: ProjectDetails) => {
+        setProject(updatedProject);
+    };
+
     useEffect(() => {
         loadProject();
     }, [projectId]);
@@ -148,7 +152,12 @@ export default function ProjectOverview() {
                     <TabsContent value="document" className="mt-0 pt-6 animate-in fade-in duration-300 ease-in-out">
                         <DocumentTab />
                     </TabsContent>
-                    <TabsContent value="team" className="mt-0 pt-6 animate-in fade-in duration-300 ease-in-out"><TeamMembersTab project={project} onRefresh={loadProject} /></TabsContent>
+                    <TabsContent value="team" className="mt-0 pt-6 animate-in fade-in duration-300 ease-in-out">
+                        <TeamMembersTab
+                            project={project}
+                            onUpdateProject={handleProjectUpdate}
+                        />
+                    </TabsContent>
                     <TabsContent value="activity" className="mt-0 pt-6 animate-in fade-in duration-300 ease-in-out"><ActivityTab /></TabsContent>
                     <TabsContent value="settings" className="mt-0 pt-6 animate-in fade-in duration-300 ease-in-out"><SettingsTab /></TabsContent>
                 </div>

@@ -93,9 +93,10 @@ export function ProjectForm({
         setIsSubmitting(true);
         const projectPayload = {
             ...formData,
-            team_members: formData.team_members.map(member => (
-                member.user.id
-            ))
+            team_members: formData.team_members.map(member => ({
+                user: member.user.id,
+                role: member.role
+            }))
         };
 
         try {

@@ -2,15 +2,14 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit2, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Search, Filter, ChevronDown } from "lucide-react";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
     Select,
     SelectContent,
@@ -20,42 +19,160 @@ import {
 } from "@/components/ui/select";
 import toast from "react-hot-toast";
 import type { ProjectDetails, TeamMember } from "../../../types/types";
+import { AddTeamMemberDialog } from "../team_member_components/AddTeamMemberDialog";
+import { EditTeamMemberDialog } from "../team_member_components/EditTeamMemberDialog";
+import { DeleteTeamMemberDialog } from "../team_member_components/DeleteTeamMemberDialog";
+import { updateProject } from "../../services/project_services/UpdateProject";
 
 interface TeamMembersTabProps {
     project: ProjectDetails;
-    onRefresh?: () => void;
+    onUpdateProject?: (updatedProject: ProjectDetails) => void;
 }
 
-export function TeamMembersTab({ project, onRefresh }: TeamMembersTabProps) {
+export function TeamMembersTab({ project, onUpdateProject }: TeamMembersTabProps) {
     const members = (project.team_members || []) as TeamMember[];
+    const [search, setSearch] = useState("");
+    const [roleFilter, setRoleFilter] = useState<string>("");
     const [editingMember, setEditingMember] = useState<number | null>(null);
     const [editRole, setEditRole] = useState<"owner" | "member" | "viewer">("member");
-    const [open, setOpen] = useState(false);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [memberToDelete, setMemberToDelete] = useState<number | null>(null);
+    const [addDialogOpen, setAddDialogOpen] = useState(false);
 
     const handleEdit = (memberId: number, currentRole: string) => {
         setEditingMember(memberId);
         setEditRole(currentRole as "owner" | "member" | "viewer");
+        setEditDialogOpen(true);
     };
 
     const handleSaveRole = async () => {
         if (editingMember === null) return;
-        // TODO: Call API to update role
-        toast.success(`Role updated to ${editRole}`, { duration: 2000 });
-        setEditingMember(null);
-        setOpen(false);
+
+        try {
+            // Find the member to update
+            const memberToUpdate = members.find(m => m.user.id === editingMember);
+            if (!memberToUpdate) return;
+
+            // Create updated team members list with new role
+            const updatedTeamMembers = members.map(m =>
+                m.user.id === editingMember
+                    ? { ...m, role: editRole }
+                    : m
+            );
+
+            // Prepare payload with user ID and role
+            const teamMembersPayload = updatedTeamMembers.map(m => ({
+                user: m.user.id,
+                role: m.role
+            }));
+
+            const response = await updateProject(project.id, {
+                team_members: teamMembersPayload
+            });
+
+            // Update UI with response data
+            if (onUpdateProject && response) {
+                onUpdateProject(response as ProjectDetails);
+            }
+
+            toast.success(`Role updated to ${editRole}`, { duration: 2000 });
+            setEditingMember(null);
+            setEditDialogOpen(false);
+        } catch (error) {
+            console.error("Failed to update role:", error);
+            toast.error("Failed to update role", { duration: 2000 });
+        }
+    }; const handleDeleteMember = (memberId: number) => {
+        setMemberToDelete(memberId);
+        setDeleteDialogOpen(true);
     };
 
-    const handleRemove = async () => {
-        // TODO: Call API to remove member
-        toast.success("Member removed", { duration: 2000 });
-        onRefresh?.();
+    const confirmDelete = async () => {
+        if (memberToDelete === null) return;
+
+        try {
+            // Remove the member from the list and prepare payload with user ID and role
+            const updatedTeamMembers = members
+                .filter(m => m.user.id !== memberToDelete)
+                .map(m => ({
+                    user: m.user.id,
+                    role: m.role
+                }));
+
+            const response = await updateProject(project.id, {
+                team_members: updatedTeamMembers
+            });
+
+            // Update UI with response data
+            if (onUpdateProject && response) {
+                onUpdateProject(response as ProjectDetails);
+            }
+
+            toast.success("Member removed", { duration: 2000 });
+            setMemberToDelete(null);
+            setDeleteDialogOpen(false);
+        } catch (error) {
+            console.error("Failed to remove member:", error);
+            toast.error("Failed to remove member", { duration: 2000 });
+        }
     };
+
+    const handleAddMembers = async (newMembers: Array<{ userId: number; userName: string; userEmail: string; role: string }>) => {
+        try {
+            // Combine existing members with new members, sending user ID and role
+            const existingMembersPayload = members.map(m => ({
+                user: m.user.id,
+                role: m.role
+            }));
+
+            const newMembersPayload = newMembers.map(m => ({
+                user: m.userId,
+                role: m.role
+            }));
+
+            const allMembers = [...existingMembersPayload, ...newMembersPayload];
+
+            const response = await updateProject(project.id, {
+                team_members: allMembers
+            });
+
+            // Update UI with response data
+            if (onUpdateProject && response) {
+                onUpdateProject(response as ProjectDetails);
+            }
+
+            toast.success(`${newMembers.length} member(s) added successfully`, { duration: 2000 });
+            setAddDialogOpen(false);
+        } catch (error) {
+            console.error("Failed to add members:", error);
+            toast.error("Failed to add members", { duration: 2000 });
+        }
+    };
+
+    // Filter members based on search and role filter
+    const filteredMembers = members.filter((member) => {
+        const u = member.user;
+        const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
+        const email = u.email.toLowerCase();
+        const searchMatch = fullName.includes(search.toLowerCase()) || email.includes(search.toLowerCase());
+        const roleMatch = roleFilter ? member.role === roleFilter : true;
+        return searchMatch && roleMatch;
+    });
 
     if (members.length === 0) {
         return (
-            <Card className="rounded-lg shadow-md bg-white border-0">
-                <CardContent className="py-8 flex justify-center">
+            <Card className="bg-white shadow-none border-0">
+                <CardContent className="py-8 flex flex-col justify-center items-center gap-4">
                     <p className="text-xs text-gray-500">No team members assigned yet.</p>
+                    <AddTeamMemberDialog
+                        open={addDialogOpen}
+                        onOpenChange={setAddDialogOpen}
+                        onConfirm={handleAddMembers}
+                        trigger={true}
+                        alignRight={false}
+                        existingMemberIds={members.map(m => m.user.id)}
+                    />
                 </CardContent>
             </Card>
         );
@@ -64,8 +181,74 @@ export function TeamMembersTab({ project, onRefresh }: TeamMembersTabProps) {
     return (
         <Card className="rounded-lg shadow-none bg-white border-0 p-0">
             <CardContent className="p-0">
+                {/* Search & Filter Controls */}
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="relative flex-1 max-w-xs">
+                        <Search className="absolute left-2 top-2.5 h-3 w-3 text-gray-400" />
+                        <Input
+                            placeholder="Search members..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-7 h-8 rounded-md text-xs placeholder:text-xs w-full"
+                        />
+                    </div>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="gap-2 h-8 rounded-md text-xs font-normal whitespace-nowrap">
+                                <Filter size={12} />
+                                Filter
+                                {roleFilter && (
+                                    <Badge variant="secondary" className="ml-1 text-xs">
+                                        1
+                                    </Badge>
+                                )}
+                                <ChevronDown size={16} />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56 p-3">
+                            <div className="space-y-2">
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">Role</label>
+                                    <Select value={roleFilter || "all"} onValueChange={(value) => setRoleFilter(value === "all" ? "" : value)}>
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="All Roles" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Roles</SelectItem>
+                                            <SelectItem value="owner">Owner</SelectItem>
+                                            <SelectItem value="member">Member</SelectItem>
+                                            <SelectItem value="viewer">Viewer</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex gap-2 pt-2 border-t">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setRoleFilter("")}
+                                        className="flex-1"
+                                    >
+                                        Clear
+                                    </Button>
+                                </div>
+                            </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <AddTeamMemberDialog
+                        open={addDialogOpen}
+                        onOpenChange={setAddDialogOpen}
+                        onConfirm={handleAddMembers}
+                        trigger={true}
+                        alignRight={true}
+                        existingMemberIds={members.map(m => m.user.id)}
+                    />
+                </div>
+
+                {/* Members List */}
                 <div className="space-y-2">
-                    {members.map((member) => {
+                    {filteredMembers.map((member) => {
                         const u = member.user;
                         const initials = `${u.first_name?.[0] || ""}${u.last_name?.[0] || ""}`.trim() || u.username?.[0]?.toUpperCase() || "?";
                         const img = u.profile?.profile_picture || undefined;
@@ -87,67 +270,38 @@ export function TeamMembersTab({ project, onRefresh }: TeamMembersTabProps) {
                                         </p>
                                         <p className="text-xs text-gray-500 truncate">{u.email}</p>
                                     </div>
+                                    <Badge variant="secondary" className="text-xs capitalize flex-shrink-0">
+                                        {member.role}
+                                    </Badge>
                                 </div>
 
                                 <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-                                    <Dialog open={editingMember === u.id && open} onOpenChange={(isOpen) => {
-                                        if (!isOpen) setEditingMember(null);
-                                        setOpen(isOpen);
-                                    }}>
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-7 w-7 p-0"
-                                                onClick={() => handleEdit(u.id, member.role)}
-                                            >
-                                                <Edit2 className="w-3.5 h-3.5" />
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="sm:max-w-md">
-                                            <DialogHeader>
-                                                <DialogTitle>Edit Role</DialogTitle>
-                                                <DialogDescription>
-                                                    Update role for {u.first_name} {u.last_name}
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <div className="space-y-4">
-                                                <div>
-                                                    <label className="text-sm font-medium text-gray-700 block mb-2">Role</label>
-                                                    <Select value={editRole} onValueChange={(val) => setEditRole(val as "owner" | "member" | "viewer")}>
-                                                        <SelectTrigger>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="owner">Owner</SelectItem>
-                                                            <SelectItem value="member">Member</SelectItem>
-                                                            <SelectItem value="viewer">Viewer</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div className="flex gap-2 justify-end">
-                                                    <Button variant="outline" size="sm" onClick={() => {
-                                                        setEditingMember(null);
-                                                        setOpen(false);
-                                                    }}>
-                                                        Cancel
-                                                    </Button>
-                                                    <Button size="sm" onClick={handleSaveRole}>
-                                                        Save
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </DialogContent>
-                                    </Dialog>
+                                    <EditTeamMemberDialog
+                                        open={editingMember === u.id && editDialogOpen}
+                                        onOpenChange={(isOpen) => {
+                                            if (!isOpen) setEditingMember(null);
+                                            setEditDialogOpen(isOpen);
+                                        }}
+                                        memberName={`${u.first_name} ${u.last_name}`}
+                                        role={editRole}
+                                        onRoleChange={setEditRole}
+                                        onConfirm={handleSaveRole}
+                                        userId={u.id}
+                                        currentRole={member.role}
+                                        onEditClick={handleEdit}
+                                    />
 
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                        onClick={() => handleRemove()}
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </Button>
+                                    <DeleteTeamMemberDialog
+                                        open={memberToDelete === u.id && deleteDialogOpen}
+                                        onOpenChange={(isOpen) => {
+                                            if (!isOpen) setMemberToDelete(null);
+                                            setDeleteDialogOpen(isOpen);
+                                        }}
+                                        memberName={`${u.first_name} ${u.last_name}`}
+                                        onConfirm={confirmDelete}
+                                        userId={u.id}
+                                        onDeleteClick={handleDeleteMember}
+                                    />
                                 </div>
                             </div>
                         );
