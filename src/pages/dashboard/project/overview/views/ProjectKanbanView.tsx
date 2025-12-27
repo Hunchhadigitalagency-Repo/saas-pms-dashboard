@@ -1,5 +1,5 @@
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import type { WorkItem } from "../services/FetchWorkItems"
+import type { WorkItem, User } from "../services/work_item_services/FetchWorkItems"
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -250,7 +250,7 @@ const ProjectKanbanView = ({ workItems, updateWorkItemStatus, openViewDrawer, op
                                                                         <div className="flex items-center">
                                                                             {item.assigned_to.length > 0 ? (
                                                                                 <div className="flex -space-x-2">
-                                                                                    {item.assigned_to.map((user) => (
+                                                                                    {item.assigned_to.map((user: User) => (
                                                                                         <TooltipProvider key={user.id} delayDuration={100}>
                                                                                             <Tooltip>
                                                                                                 <TooltipTrigger asChild>

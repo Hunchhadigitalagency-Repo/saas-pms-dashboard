@@ -3,11 +3,8 @@
 import { useState } from "react"
 import {
   BadgeCheck,
-  Bell,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
-  Sparkles,
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from 'react-hot-toast';

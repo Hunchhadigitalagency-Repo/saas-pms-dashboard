@@ -19,7 +19,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, Eye, Edit, Trash2, ChevronDown } from "lucide-react"
-import type { WorkItem } from "../services/FetchWorkItems"
+import type { WorkItem, User } from "../services/work_item_services/FetchWorkItems"
 
 export type SortConfigItem = {
     field: string;
@@ -238,7 +238,7 @@ export default function ProjectTableView({
                                 <div className="flex items-center">
                                     {item.assigned_to.length > 0 ? (
                                         <div className="flex -space-x-2">
-                                            {item.assigned_to.map((user) => (
+                                            {item.assigned_to.map((user: User) => (
                                                 <TooltipProvider key={user.id}>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
