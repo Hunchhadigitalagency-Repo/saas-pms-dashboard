@@ -26,11 +26,6 @@ import {
 
 // This is sample data.
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   teams: [
     {
       name: "Acme Inc",
@@ -61,7 +56,7 @@ const data = {
     },
     {
       title: "Settings",
-      url: "#",
+      url: "/dashboard/settings",
       icon: Settings,
     },
   ],
@@ -92,6 +87,19 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [user, setUser] = React.useState({ name: "", email: "", avatar: "" });
+
+  React.useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser({
+        name: `${parsedUser.first_name} ${parsedUser.last_name}`,
+        email: parsedUser.email,
+        avatar: `https://ui-avatars.com/api/?name=${parsedUser.first_name}+${parsedUser.last_name}`,
+      });
+    }
+  }, []);
   return (
     <Sidebar collapsible="icon" {...props} className="bg-muted">
       <SidebarHeader>
@@ -110,7 +118,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </div>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

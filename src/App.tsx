@@ -15,6 +15,7 @@ import { Toaster } from 'react-hot-toast';
 import WorkItemsList from './pages/dashboard/work_items/WorkItems';
 import ProjectWorkItemsList from './pages/dashboard/project/work-items/WorkItemsList';
 import ProjectOverview from './pages/dashboard/project/overview/index';
+import SettingsPage from './pages/dashboard/settings';
 
 function App() {
 
@@ -45,6 +46,7 @@ function App() {
           <Route path="project/:projectId/overview" element={<ProjectOverview />} />
           <Route path="work-items" element={<WorkItemsList />} />
           <Route path="project/:projectId/work-items" element={<ProjectWorkItemsList />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
         {/* Default redirect */}
         <Route path="*" element={<LoginPage />} />

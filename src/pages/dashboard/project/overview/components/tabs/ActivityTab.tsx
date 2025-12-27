@@ -175,7 +175,7 @@ export function ActivityTab() {
                                 </p>
                                 <div className="bg-white rounded p-3 mb-3 border border-gray-300">
                                     <code className="text-xs font-mono text-gray-800 block break-words">
-                                        WI-12:#done WI-15:#inprogress WI-18:#pending Finalizing multiple features
+                                        WI-12:#done WI-13:#start WI-14:#completed WI-18:#pending Finalizing multiple features
                                     </code>
                                 </div>
                                 <div className="space-y-2">
@@ -186,7 +186,10 @@ export function ActivityTab() {
                                         <strong>Available Status:</strong>
                                     </p>
                                     <div className="flex flex-wrap gap-2">
+                                        <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">done</span>
                                         <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">completed</span>
+                                        <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">closed</span>
+                                        <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">start</span>
                                         <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">inprogress</span>
                                         <span className="inline-block bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-medium">pending</span>
                                     </div>
@@ -243,7 +246,7 @@ export function ActivityTab() {
                     </p>
                     <div className="bg-white rounded p-3 mb-3 border border-gray-300">
                         <code className="text-xs font-mono text-gray-800 block break-words">
-                            WI-12:#done WI-15:#inprogress WI-18:#pending Finalizing multiple features
+                            WI-12:#done WI-13:#start WI-14:#completed WI-18:#pending Finalizing multiple features
                         </code>
                     </div>
                     <div className="space-y-2">
@@ -254,7 +257,10 @@ export function ActivityTab() {
                             <strong>Available Status:</strong>
                         </p>
                         <div className="flex flex-wrap gap-2">
+                            <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">done</span>
                             <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">completed</span>
+                            <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">closed</span>
+                            <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">start</span>
                             <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">inprogress</span>
                             <span className="inline-block bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-medium">pending</span>
                         </div>

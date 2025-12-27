@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RichTextEditor } from "@/components/ui/text-editor-lexical/rich-text-editor"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import {
     X, UserPlus, Calendar, FolderOpen, Clock,
